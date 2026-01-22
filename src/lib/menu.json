@@ -1,0 +1,217 @@
+{
+  "restaurant": {
+    "name": "Nou Espantall Bar",
+    "chef": {
+      "name": "Chef Reza",
+      "specialty": "Cocina Mediterránea & Tapas",
+      "rating": 4.5,
+      "description": "Fusionando la tradición de Cambrils con un toque moderno. Especialista en tapas creativas, torradas artesanales y postres caseros.",
+      "image": "/chef-reza.png"
+    }
+  },
+  "featuredDish": {
+    "id": "h_esp",
+    "name": "Hamburguesa Espantall",
+    "description": "Nuestra hamburguesa estrella: carne de ternera premium, queso fundido, bacon crujiente, huevo, cebolla caramelizada y guarnición de patatas fritas.",
+    "price": 14.5,
+    "rating": 4.9,
+    "category": "Bocadillos",
+    "image": "/hamburguesa_espantall_nou_1768935612743.png",
+    "videoUrl": "#"
+  },
+  "categories": [
+    {
+      "id": "entrantes",
+      "name": "Entrantes",
+      "icon": "🥗",
+      "items": [
+        {
+          "id": "e_cabra",
+          "name": "Ensalada de Cabra",
+          "description": "Lechuga, queso de cabra, frutos secos, tomate y aderezo.",
+          "price": 12.5,
+          "category": "Entrantes",
+          "rating": 4.7,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        },
+        {
+          "id": "e_atun",
+          "name": "Ensalada de Atún",
+          "description": "Lechuga, atún, tomate y huevo duro.",
+          "price": 9.5,
+          "category": "Entrantes",
+          "rating": 4.5,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        }
+      ]
+    },
+    {
+      "id": "bocadillos",
+      "name": "Bocadillos",
+      "icon": "🥖",
+      "items": [
+        {
+          "id": "b_lomo",
+          "name": "Lomo",
+          "description": "Lomo a la plancha servido en pan crujiente.",
+          "price": 6.5,
+          "category": "Bocadillos",
+          "rating": 4.6,
+          "image": "/bocadillo_jamon_nou_1768935698852.png"
+        },
+        {
+          "id": "h_esp_item",
+          "name": "Hamburguesa Espantall",
+          "description": "Carne, queso, bacon, huevo, cebolla caramelizada y patatas fritas.",
+          "price": 14.5,
+          "category": "Bocadillos",
+          "rating": 4.9,
+          "image": "/hamburguesa_espantall_nou_1768935612743.png"
+        }
+      ]
+    },
+    {
+      "id": "para_compartir",
+      "name": "Para compartir",
+      "icon": "🍽️",
+      "items": [
+        {
+          "id": "c_mej",
+          "name": "Mejillones a la Plancha",
+          "description": "Mejillones frescos con un toque de limón.",
+          "price": 14.0,
+          "category": "Para compartir",
+          "rating": 4.8,
+          "image": "/mejillones_nou_1768935668444.png"
+        },
+        {
+          "id": "c_huevos",
+          "name": "Huevos Rotos",
+          "description": "Huevos fritos con patatas, acompañados de jamón.",
+          "price": 13.5,
+          "category": "Para compartir",
+          "rating": 4.9,
+          "image": "/huevos_rotos_nou_1768935630633.png"
+        },
+        {
+          "id": "c_cal_and",
+          "name": "Calamares a la Andaluza",
+          "description": "Calamares rebozados al estilo andaluz.",
+          "price": 15.5,
+          "category": "Para compartir",
+          "rating": 4.7,
+          "image": "/calamares_andaluza_nou_1768935684623.png"
+        }
+      ]
+    },
+    {
+      "id": "tablas",
+      "name": "Tablas",
+      "icon": "🍱",
+      "items": [
+        {
+          "id": "t_jamon",
+          "name": "Jamón Ibérico",
+          "description": "Lonchas de jamón ibérico de calidad.",
+          "price": 18.5,
+          "category": "Tablas",
+          "rating": 4.9,
+          "image": "/bocadillo_jamon_nou_1768935698852.png"
+        }
+      ]
+    },
+    {
+      "id": "torradas",
+      "name": "Torradas",
+      "icon": "🍞",
+      "items": [
+        {
+          "id": "to_cat",
+          "name": "Catalana",
+          "description": "Longaniza, cebolla confitada, pimiento verde.",
+          "price": 10.5,
+          "category": "Torradas",
+          "rating": 4.8,
+          "image": "/torrada_catalana_nou_v2_1768935713436.png"
+        },
+        {
+          "id": "to_brie",
+          "name": "Brie",
+          "description": "Pollo, cebolla confitada y queso brie.",
+          "price": 11.0,
+          "category": "Torradas",
+          "rating": 4.7,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        }
+      ]
+    },
+    {
+      "id": "combinados",
+      "name": "Combinados",
+      "icon": "🍳",
+      "items": [
+        {
+          "id": "co_lomo",
+          "name": "Lomo",
+          "description": "Servido con guarnición completa.",
+          "price": 15.5,
+          "category": "Combinados",
+          "rating": 4.6,
+          "image": "/hamburguesa_espantall_nou_1768935612743.png"
+        }
+      ]
+    },
+    {
+      "id": "montaditos",
+      "name": "Montaditos",
+      "icon": "🍔",
+      "items": [
+        {
+          "id": "m_pollo",
+          "name": "Pollo",
+          "description": "Pollo con lechuga, tomate y mayonesa.",
+          "price": 4.5,
+          "category": "Montaditos",
+          "rating": 4.7,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        }
+      ]
+    },
+    {
+      "id": "postres",
+      "name": "Postres",
+      "icon": "🍰",
+      "items": [
+        {
+          "id": "p_crema",
+          "name": "Crema Catalana",
+          "description": "Crema caramelizada típica catalana.",
+          "price": 6.5,
+          "category": "Postres",
+          "rating": 4.9,
+          "image": "/crema_catalana_nou_1768935644265.png"
+        },
+        {
+          "id": "p_coulant",
+          "name": "Coulant",
+          "description": "Coulant de chocolate con centro fundido.",
+          "price": 7.5,
+          "category": "Postres",
+          "rating": 4.8,
+          "image": "/crema_catalana_nou_1768935644265.png"
+        }
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "id": "r1",
+      "userName": "Marc R.",
+      "userAvatar": "",
+      "rating": 5,
+      "comment": "Los mejores huevos rotos de Cambrils. El ambiente es fantástico.",
+      "date": "15 Jan 2026",
+      "dishName": "Huevos Rotos"
+    }
+  ]
+}
