@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 b05d1b2e190573a600f030ba82c332e43fcaa2fc Munay Admin <admin@munaykids.com> 1769124400 +0100	commit (initial): Initial Release: Restaurant OS 1.0 (Clean Architecture)
+b05d1b2e190573a600f030ba82c332e43fcaa2fc aa0b9501c21ff35084b5c15f62098618de73095d Munay Admin <admin@munaykids.com> 1769124619 +0100	commit: Deploy: Force Vercel build trigger

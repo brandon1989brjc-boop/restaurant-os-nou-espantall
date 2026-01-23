@@ -1,0 +1,53 @@
+[
+    {
+        "name": "navigate_to_section",
+        "description": "Navigate to a specific section of the menu or application. Use this whenever the user asks to see a category, go to the cart, or view reviews.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "section": {
+                    "type": "string",
+                    "enum": [
+                        "bocadillos",
+                        "entrantes",
+                        "tablas",
+                        "para_compartir",
+                        "torradas",
+                        "combinados",
+                        "montaditos",
+                        "postres",
+                        "bebidas",
+                        "cart",
+                        "home",
+                        "reseñas",
+                        "cuenta"
+                    ],
+                    "description": "The target section ID. 'cart' opens the shopping cart. 'cuenta' opens the final bill."
+                }
+            },
+            "required": [
+                "section"
+            ]
+        }
+    },
+    {
+        "name": "add_to_cart",
+        "description": "Add a specific item to the order/cart. Detect the item name and quantity from user speech.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "item_name": {
+                    "type": "string",
+                    "description": "The name of the dish or product to add."
+                },
+                "quantity": {
+                    "type": "number",
+                    "description": "The quantity to add. Default to 1 if not specified."
+                }
+            },
+            "required": [
+                "item_name"
+            ]
+        }
+    }
+]

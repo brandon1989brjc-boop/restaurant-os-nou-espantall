@@ -1,0 +1,469 @@
+{
+  "restaurant": {
+    "name": "Nou Espantall Bar",
+    "chef": {
+      "name": "Chef Reza",
+      "specialty": "Cocina Mediterránea & Tapas",
+      "rating": 4.5,
+      "description": "Fusionando la tradición de Cambrils con un toque moderno. Especialista en tapas creativas, torradas artesanales y postres caseros.",
+      "image": "/chef-reza.png"
+    }
+  },
+  "featuredDish": {
+    "id": "h_esp",
+    "name": {
+      "es": "Hamburguesa Espantall",
+      "en": "Espantall Burger"
+    },
+    "description": {
+      "es": "Nuestra hamburguesa estrella: carne de ternera premium, queso fundido, bacon crujiente, huevo, cebolla caramelizada y guarnición de patatas fritas.",
+      "en": "Our signature burger: premium beef patty, melted cheese, crispy bacon, fried egg, caramelized onions, and a side of fries."
+    },
+    "price": 14.5,
+    "rating": 4.9,
+    "category": "Bocadillos",
+    "image": "/hamburguesa_espantall_nou_1768935612743.png",
+    "videoUrl": "#",
+    "modifierGroups": [
+      {
+        "id": "meat_point",
+        "name": {
+          "es": "Punto de la carne",
+          "en": "Meat temperature"
+        },
+        "minSelection": 1,
+        "maxSelection": 1,
+        "options": [
+          {
+            "id": "rare",
+            "name": {
+              "es": "Poco hecha",
+              "en": "Rare"
+            },
+            "priceDelta": 0
+          },
+          {
+            "id": "medium",
+            "name": {
+              "es": "Al punto",
+              "en": "Medium"
+            },
+            "priceDelta": 0
+          },
+          {
+            "id": "well",
+            "name": {
+              "es": "Muy hecha",
+              "en": "Well done"
+            },
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
+        "id": "extras",
+        "name": {
+          "es": "Extras",
+          "en": "Extras"
+        },
+        "minSelection": 0,
+        "maxSelection": 3,
+        "options": [
+          {
+            "id": "extra_cheese",
+            "name": {
+              "es": "Extra Queso",
+              "en": "Extra Cheese"
+            },
+            "priceDelta": 1.0
+          },
+          {
+            "id": "extra_bacon",
+            "name": {
+              "es": "Extra Bacon",
+              "en": "Extra Bacon"
+            },
+            "priceDelta": 1.5
+          }
+        ]
+      }
+    ]
+  },
+  "categories": [
+    {
+      "id": "entrantes",
+      "name": {
+        "es": "Entrantes",
+        "en": "Starters"
+      },
+      "icon": "🥗",
+      "items": [
+        {
+          "id": "e_cabra",
+          "name": {
+            "es": "Ensalada de Cabra",
+            "en": "Goat Cheese Salad"
+          },
+          "description": {
+            "es": "Lechuga, queso de cabra, frutos secos, tomate y aderezo.",
+            "en": "Lettuce mix, goat cheese, nuts, tomato, and dressing."
+          },
+          "price": 12.5,
+          "category": "Entrantes",
+          "rating": 4.7,
+          "image": "/ensalada_cabra_nou_1768935598483.png",
+          "modifierGroups": [
+            {
+              "id": "dressing",
+              "name": {
+                "es": "Aliño",
+                "en": "Dressing"
+              },
+              "minSelection": 1,
+              "maxSelection": 1,
+              "options": [
+                {
+                  "id": "vinagre",
+                  "name": {
+                    "es": "Vinagreta",
+                    "en": "Vinaigrette"
+                  },
+                  "priceDelta": 0
+                },
+                {
+                  "id": "salsa_rosa",
+                  "name": {
+                    "es": "Salsa Rosa",
+                    "en": "Pink Sauce"
+                  },
+                  "priceDelta": 0
+                },
+                {
+                  "id": "sin_salsa",
+                  "name": {
+                    "es": "Sin Salsa",
+                    "en": "No Dressing"
+                  },
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "e_atun",
+          "name": {
+            "es": "Ensalada de Atún",
+            "en": "Tuna Salad"
+          },
+          "description": {
+            "es": "Lechuga, atún, tomate y huevo duro.",
+            "en": "Lettuce, tuna, tomato, and hard-boiled egg."
+          },
+          "price": 9.5,
+          "category": "Entrantes",
+          "rating": 4.5,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        }
+      ]
+    },
+    {
+      "id": "bocadillos",
+      "name": {
+        "es": "Bocadillos",
+        "en": "Sandwiches"
+      },
+      "icon": "🥖",
+      "items": [
+        {
+          "id": "b_lomo",
+          "name": {
+            "es": "Lomo",
+            "en": "Pork Loin Sandwich"
+          },
+          "description": {
+            "es": "Lomo a la plancha servido en pan crujiente.",
+            "en": "Grilled pork loin served on crispy bread."
+          },
+          "price": 6.5,
+          "category": "Bocadillos",
+          "rating": 4.6,
+          "image": "/bocadillo_jamon_nou_1768935698852.png"
+        },
+        {
+          "id": "h_esp_item",
+          "name": {
+            "es": "Hamburguesa Espantall",
+            "en": "Espantall Burger"
+          },
+          "description": {
+            "es": "Carne, queso, bacon, huevo, cebolla caramelizada y patatas fritas.",
+            "en": "Beef, cheese, bacon, egg, caramelized onions, and fries."
+          },
+          "price": 14.5,
+          "category": "Bocadillos",
+          "rating": 4.9,
+          "image": "/hamburguesa_espantall_nou_1768935612743.png",
+          "modifierGroups": [
+            {
+              "id": "meat_point",
+              "name": {
+                "es": "Punto de la carne",
+                "en": "Meat temperature"
+              },
+              "minSelection": 1,
+              "maxSelection": 1,
+              "options": [
+                {
+                  "id": "rare",
+                  "name": {
+                    "es": "Poco hecha",
+                    "en": "Rare"
+                  },
+                  "priceDelta": 0
+                },
+                {
+                  "id": "medium",
+                  "name": {
+                    "es": "Al punto",
+                    "en": "Medium"
+                  },
+                  "priceDelta": 0
+                },
+                {
+                  "id": "well",
+                  "name": {
+                    "es": "Muy hecha",
+                    "en": "Well done"
+                  },
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "para_compartir",
+      "name": {
+        "es": "Para compartir",
+        "en": "To Share"
+      },
+      "icon": "🍽️",
+      "items": [
+        {
+          "id": "c_mej",
+          "name": {
+            "es": "Mejillones a la Plancha",
+            "en": "Grilled Mussels"
+          },
+          "description": {
+            "es": "Mejillones frescos con un toque de limón.",
+            "en": "Fresh mussels with a touch of lemon."
+          },
+          "price": 14.0,
+          "category": "Para compartir",
+          "rating": 4.8,
+          "image": "/mejillones_nou_1768935668444.png"
+        },
+        {
+          "id": "c_huevos",
+          "name": {
+            "es": "Huevos Rotos",
+            "en": "Broken Eggs"
+          },
+          "description": {
+            "es": "Huevos fritos con patatas, acompañados de jamón.",
+            "en": "Fried eggs with potatoes and ham."
+          },
+          "price": 13.5,
+          "category": "Para compartir",
+          "rating": 4.9,
+          "image": "/huevos_rotos_nou_1768935630633.png"
+        },
+        {
+          "id": "c_cal_and",
+          "name": {
+            "es": "Calamares a la Andaluza",
+            "en": "Andalusian Squid"
+          },
+          "description": {
+            "es": "Calamares rebozados al estilo andaluz.",
+            "en": "Battered squid rings fried Andalusian style."
+          },
+          "price": 15.5,
+          "category": "Para compartir",
+          "rating": 4.7,
+          "image": "/calamares_andaluza_nou_1768935684623.png"
+        }
+      ]
+    },
+    {
+      "id": "tablas",
+      "name": {
+        "es": "Tablas",
+        "en": "Platters"
+      },
+      "icon": "🍱",
+      "items": [
+        {
+          "id": "t_jamon",
+          "name": {
+            "es": "Jamón Ibérico",
+            "en": "Iberian Ham"
+          },
+          "description": {
+            "es": "Lonchas de jamón ibérico de calidad.",
+            "en": "Slices of premium Iberian ham."
+          },
+          "price": 18.5,
+          "category": "Tablas",
+          "rating": 4.9,
+          "image": "/bocadillo_jamon_nou_1768935698852.png"
+        }
+      ]
+    },
+    {
+      "id": "torradas",
+      "name": {
+        "es": "Torradas",
+        "en": "Toasts"
+      },
+      "icon": "🍞",
+      "items": [
+        {
+          "id": "to_cat",
+          "name": {
+            "es": "Catalana",
+            "en": "Catalan Toast"
+          },
+          "description": {
+            "es": "Longaniza, cebolla confitada, pimiento verde.",
+            "en": "Sausage, confit onion, and green pepper."
+          },
+          "price": 10.5,
+          "category": "Torradas",
+          "rating": 4.8,
+          "image": "/torrada_catalana_nou_v2_1768935713436.png"
+        },
+        {
+          "id": "to_brie",
+          "name": {
+            "es": "Brie",
+            "en": "Brie Toast"
+          },
+          "description": {
+            "es": "Pollo, cebolla confitada y queso brie.",
+            "en": "Chicken, confit onion, and Brie cheese."
+          },
+          "price": 11.0,
+          "category": "Torradas",
+          "rating": 4.7,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        }
+      ]
+    },
+    {
+      "id": "combinados",
+      "name": {
+        "es": "Combinados",
+        "en": "Combo Plates"
+      },
+      "icon": "🍳",
+      "items": [
+        {
+          "id": "co_lomo",
+          "name": {
+            "es": "Lomo",
+            "en": "Pork Loin Combo"
+          },
+          "description": {
+            "es": "Servido con guarnición completa.",
+            "en": "Served with full garnish."
+          },
+          "price": 15.5,
+          "category": "Combinados",
+          "rating": 4.6,
+          "image": "/hamburguesa_espantall_nou_1768935612743.png"
+        }
+      ]
+    },
+    {
+      "id": "montaditos",
+      "name": {
+        "es": "Montaditos",
+        "en": "Montaditos"
+      },
+      "icon": "🍔",
+      "items": [
+        {
+          "id": "m_pollo",
+          "name": {
+            "es": "Pollo",
+            "en": "Chicken Montadito"
+          },
+          "description": {
+            "es": "Pollo con lechuga, tomate y mayonesa.",
+            "en": "Chicken with lettuce, tomato, and mayonnaise."
+          },
+          "price": 4.5,
+          "category": "Montaditos",
+          "rating": 4.7,
+          "image": "/ensalada_cabra_nou_1768935598483.png"
+        }
+      ]
+    },
+    {
+      "id": "postres",
+      "name": {
+        "es": "Postres",
+        "en": "Desserts"
+      },
+      "icon": "🍰",
+      "items": [
+        {
+          "id": "p_crema",
+          "name": {
+            "es": "Crema Catalana",
+            "en": "Creme Brulee"
+          },
+          "description": {
+            "es": "Crema caramelizada típica catalana.",
+            "en": "Traditional Catalan caramelized cream."
+          },
+          "price": 6.5,
+          "category": "Postres",
+          "rating": 4.9,
+          "image": "/crema_catalana_nou_1768935644265.png"
+        },
+        {
+          "id": "p_coulant",
+          "name": {
+            "es": "Coulant",
+            "en": "Chocolate Lava Cake"
+          },
+          "description": {
+            "es": "Coulant de chocolate con centro fundido.",
+            "en": "Chocolate cake with a molten center."
+          },
+          "price": 7.5,
+          "category": "Postres",
+          "rating": 4.8,
+          "image": "/crema_catalana_nou_1768935644265.png"
+        }
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "id": "r1",
+      "userName": "Marc R.",
+      "userAvatar": "",
+      "rating": 5,
+      "comment": "Los mejores huevos rotos de Cambrils. El ambiente es fantástico.",
+      "date": "15 Jan 2026",
+      "dishName": "Huevos Rotos"
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+MENÚ COMPLETO - NOU ESPANTALL CAMBRILS
+========================================
+
+=== BOCADILLOS ===
+ID: bocadillos
+
+1. Bocadillo de Jamón Ibérico (8.50€)
+   - Pan artesanal, jamón ibérico de bellota, tomate natural, aceite de oliva virgen extra
+   
+2. Bocadillo de Lomo con Queso (7.00€)
+   - Lomo de cerdo, queso manchego, pimientos del piquillo
+   
+3. Vegetal Mediterráneo (6.50€)
+   - Verduras asadas, hummus casero, rúcula, tomate seco
+
+4. Bocadillo de Tortilla Española (6.00€)
+   - Tortilla de patatas casera, alioli suave
+
+5. Bikini Premium (7.50€)
+   - Jamón york, queso emmental, mantequilla al punto
+
+
+=== PARA COMPARTIR (ENTRANTES) ===
+ID: entrantes
+
+1. Croquetas de Jamón Ibérico (7.50€)
+   - 6 unidades artesanales, bechamel cremosa
+   
+2. Ensalada de Cabra con Nueces (9.00€)
+   - Mix de lechugas, queso de cabra gratinado, nueces caramelizadas, cebolla morada, tomate cherry, vinagreta de miel
+   INGREDIENTES: lechuga, queso de cabra, nueces, cebolla, tomate, miel
+   
+3. Patatas Bravas Caseras (5.50€)
+   - Salsa brava picante, alioli
+   
+4. Pulpo a la Brasa (12.00€)
+   - Pulpo gallego, patata confitada, pimentón de la Vera
+
+5. Gambas al Ajillo (10.50€)
+   - Gambas frescas, aceite de oliva, ajo, guindilla
+
+6. Pan con Tomate y Jamón (8.00€)
+   - Pan payés, tomate natural, jamón ibérico, aceite de oliva
+
+
+=== TABLAS PARA COMPARTIR ===
+ID: tablas
+
+1. Tabla de Quesos Artesanos (14.00€)
+   - Selección de 4 quesos españoles, membrillo, frutos secos, mermelada de higos
+   
+2. Tabla Ibérica Premium (18.00€)
+   - Jamón ibérico, lomo, salchichón, chorizo ibérico, queso manchego, pan cristal
+   
+3. Tabla Mixta Mar y Montaña (22.00€)
+   - Anchoas del Cantábrico, boquerones en vinagre, jamón ibérico, quesos, aceitunas
+
+
+=== ENSALADAS ===
+ID: ensaladas
+
+1. Ensalada César (9.50€)
+   - Lechuga romana, pollo a la plancha, queso parmesano, picatostes, salsa césar
+   
+2. Ensalada Mediterránea (8.50€)
+   - Tomate, pepino, cebolla, aceitunas negras, queso feta, orégano
+
+3. Ensalada Templada de Cabra (10.00€)
+   - Mix verde, queso de cabra caliente, cebolla caramelizada, bacon crujiente
+
+
+=== PLATOS PRINCIPALES ===
+ID: platos
+
+1. Arroz Negro con Sepia y Gambas (15.50€)
+   - Arroz bomba, sepia, gambas, alioli
+   
+2. Fideuá de Mariscos (16.00€)
+   - Fideos, langostinos, mejillones, sepia, caldo de pescado
+   
+3. Pulpo a la Gallega (17.50€)
+   - Pulpo cocido, patata, pimentón, aceite de oliva
+   
+4. Secreto Ibérico a la Plancha (16.50€)
+   - Secreto de cerdo ibérico, patatas fritas, pimientos de padrón
+
+5. Hamburguesa Nou Espantall (13.00€)
+   - Carne Black Angus 200g, queso cheddar, bacon, cebolla caramelizada, tomate, lechuga, pan brioche, patatas fritas
+   INGREDIENTES: carne, queso cheddar, bacon, cebolla, tomate, lechuga, pepinillos
+
+6. Entrecot de Ternera (22.00€)
+   - 300g, guarnición de patatas y verduras
+
+
+=== COMBINADOS ===
+ID: combinados
+
+1. Bravas + Croquetas + Bebida (12.00€)
+2. Ensalada César + Pan Tomate + Bebida (14.00€)
+3. Tabla Ibérica + 2 Bebidas (25.00€)
+
+
+=== POSTRES ===
+ID: postres
+
+1. Tarta de Queso Casera (5.50€)
+   - Con coulis de frutos rojos
+   
+2. Crema Catalana (5.00€)
+   - Tradicional con azúcar caramelizado
+   
+3. Brownie con Helado de Vainilla (6.00€)
+   - Brownie de chocolate, helado artesanal, salsa de chocolate
+   
+4. Coulant de Chocolate (6.50€)
+   - Centro fundente, helado de vainilla
+
+5. Tarta de Santiago (5.00€)
+   - Almendra, azúcar glass
+
+
+=== BEBIDAS ===
+ID: bebidas
+
+AGUAS Y REFRESCOS:
+- Agua Mineral (2.00€)
+- Coca-Cola / Zero / Light (2.50€)
+- Fanta Naranja / Limón (2.50€)
+- Sprite (2.50€)
+- Nestea (2.50€)
+- Tónica Schweppes (2.80€)
+- Zumo Natural de Naranja (3.50€)
+
+CERVEZAS:
+- Estrella Damm (3.00€)
+- Estrella Damm 0,0 (3.00€)
+- Corona (3.50€)
+- Mahou Cinco Estrellas (3.20€)
+
+VINOS:
+- Vino de la Casa (copa 3.50€ / botella 15.00€)
+- Albariño (copa 4.50€ / botella 20.00€)
+- Ribera del Duero (copa 5.00€ / botella 24.00€)
+- Cava Brut Nature (copa 4.00€ / botella 18.00€)
+
+CAFÉS:
+- Café Solo (1.50€)
+- Café Cortado (1.60€)
+- Café con Leche (1.80€)
+- Capuchino (2.20€)
+
+
+=== MODIFICACIONES PERMITIDAS ===
+
+ELIMINACIONES COMUNES:
+- Sin cebolla
+- Sin tomate
+- Sin pepinillos
+- Sin ajo
+- Sin sal
+- Sin picante
+- Sin gluten (disponible en pan de bocadillos)
+- Sin lactosa (consultar quesos alternativos)
+
+ADICIONES:
+- Extra de queso
+- Extra de jamón
+- Extra de bacon
+- Doble ración de proteína
+
+PREFERENCIAS DE COCCIÓN:
+- Poco hecho
+- Al punto
+- Muy hecho
+- Bien caliente
+- Templado
+
+PREFERENCIAS DIETÉTICAS:
+- Baja en sal
+- Sin azúcar
+- Vegano (consultar opciones)
+- Vegetariano
+- Sin frutos secos
+
+
+=== INFORMACIÓN ADICIONAL ===
+
+HORARIOS:
+- Lunes a Viernes: 12:00 - 16:00 y 19:00 - 23:30
+- Sábados y Domingos: 12:00 - 00:00
+
+UBICACIÓN:
+- Paseo Marítimo de Cambrils, Tarragona
+- Frente al mar, zona de terrazas
+
+NOTAS PARA EL AGENTE DE VOZ:
+1. SIEMPRE usar nombres exactos de los platos
+2. Si el cliente dice "ensalada" sin especificar, preguntar cuál
+3. Las cantidades por defecto son 1 unidad
+4. Las modificaciones deben estructurarse como JSON
+5. Confirmar siempre el pedido antes de finalizarlo
