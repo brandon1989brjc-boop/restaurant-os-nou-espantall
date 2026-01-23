@@ -16,6 +16,7 @@
     "clsx": "latest",
     "framer-motion": "^12.29.0",
     "fuse.js": "^7.1.0",
+    "groq-sdk": "^0.37.0",
     "gsap": "latest",
     "lenis": "latest",
     "lucide-react": "latest",

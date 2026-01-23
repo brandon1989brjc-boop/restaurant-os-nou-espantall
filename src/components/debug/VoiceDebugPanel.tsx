@@ -40,7 +40,7 @@ export default function VoiceDebugPanel({ logs, apiStatus, isListening, onClearL
                     {/* Status Monitor */}
                     <div className="grid grid-cols-2 gap-2 mb-4">
                         <div className="bg-black/50 p-2 rounded border border-green-900">
-                            <span className="text-gray-500 block">Gemini API</span>
+                            <span className="text-gray-500 block">Groq AI API</span>
                             <span className={`font-bold ${apiStatus === 'ok' ? 'text-green-500' : 'text-red-500'}`}>
                                 {apiStatus.toUpperCase()}
                             </span>
@@ -70,8 +70,8 @@ export default function VoiceDebugPanel({ logs, apiStatus, isListening, onClearL
                             <div key={i} className="mb-2 border-b border-green-900/30 pb-1 last:border-0 animate-in slide-in-from-left-2 fade-in duration-200">
                                 <span className="text-gray-600">[{log.timestamp}]</span>
                                 <span className={`font-bold ml-2 ${log.source === 'MIC' ? 'text-blue-400' :
-                                        log.source === 'BRAIN' ? 'text-purple-400' :
-                                            log.source === 'ERROR' ? 'text-red-500' : 'text-yellow-400'
+                                    log.source === 'BRAIN' ? 'text-purple-400' :
+                                        log.source === 'ERROR' ? 'text-red-500' : 'text-yellow-400'
                                     }`}>{log.source}:</span>
                                 <p className="ml-4 text-white/90 break-words">{log.message}</p>
                                 {log.data && (
