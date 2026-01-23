@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSound } from '@/hooks/useSound';
+import { useMachine } from '@xstate/react';
+import { voiceMachine } from '@/lib/voice/voiceStateMachine';
 import { LocalIntentMatcher } from '@/lib/voice/LocalIntentMatcher';
+import { MenuFuzzyMatcher } from '@/lib/voice/MenuFuzzyMatcher';
 import menuData from '@/lib/menu.json';
 
 interface UseNativeVoiceProps {
     onNavigate: (section: string) => void;
     onItemFound: (item: any) => void;
+    onClarify?: (options: any[], message?: string) => void;
 }
 
 interface Log {
@@ -17,14 +21,16 @@ interface Log {
     data?: any;
 }
 
-export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps) {
-    const [isListening, setIsListening] = useState(false);
+export function useNativeVoice({ onNavigate, onItemFound, onClarify }: UseNativeVoiceProps) {
+    const [state, send] = useMachine(voiceMachine);
     const [shouldKeepListening, setShouldKeepListening] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [isSpeaking, setIsSpeaking] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [logs, setLogs] = useState<Log[]>([]);
     const [apiStatus, setApiStatus] = useState<'ok' | 'error' | 'checking' | 'unknown'>('ok');
+
+    const isListening = state.matches('listening');
+    const isProcessing = state.matches('processing');
+    const isSpeaking = state.matches('speaking');
 
     const recognitionRef = useRef<any>(null);
     const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
@@ -56,6 +62,9 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         setLogs(prev => [newLog, ...prev].slice(0, 50));
     };
 
+    const [history, setHistory] = useState<any[]>([]);
+    const fuzzyMatcher = useRef<MenuFuzzyMatcher | null>(null);
+
     // 1. Preparar el Cerebro Local Permanente (Fallback)
     useEffect(() => {
         const data: any = menuData;
@@ -74,6 +83,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         }] : []);
 
         localMatcher.current = new LocalIntentMatcher(simpleMenu);
+        fuzzyMatcher.current = new MenuFuzzyMatcher(simpleMenu);
     }, []);
 
     // 2. Configurar Speech Recognition Robusta
@@ -89,13 +99,13 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                 recognition.maxAlternatives = 1;
 
                 recognition.onstart = () => {
-                    setIsListening(true);
+                    send({ type: 'START_LISTENING' });
                     setTranscript("Escuchando...");
                     initAudioContext();
                 };
 
                 recognition.onend = () => {
-                    setIsListening(false);
+                    send({ type: 'STOP_LISTENING' });
                     if (shouldKeepListening && !isProcessing && !isSpeaking) {
                         setTimeout(() => {
                             try { recognition.start(); } catch (e) { }
@@ -173,7 +183,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         if (typeof window === 'undefined' || !text) return;
 
         window.speechSynthesis.cancel();
-        setIsSpeaking(true);
+        send({ type: 'SPEAK' });
         addLog('SYSTEM', `🔈 Hablando: ${text}`);
 
         const wasListening = shouldKeepListening;
@@ -195,7 +205,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
             const safetyTimeout = setTimeout(() => {
                 if (isSpeaking) {
-                    setIsSpeaking(false);
+                    send({ type: 'FINISH' });
                     addLog('SYSTEM', '🔈 Timeout de habla detectado');
                     if (wasListening) try { recognitionRef.current?.start(); } catch (e) { }
                 }
@@ -203,7 +213,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
             utterance.onend = () => {
                 clearTimeout(safetyTimeout);
-                setIsSpeaking(false);
+                send({ type: 'FINISH' });
                 addLog('SYSTEM', '🔈 Fin de habla');
                 if (wasListening) {
                     setTimeout(() => {
@@ -215,7 +225,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
             utterance.onerror = (e) => {
                 clearTimeout(safetyTimeout);
                 addLog('ERROR', 'Error TTS', e);
-                setIsSpeaking(false);
+                send({ type: 'ERROR' });
                 if (wasListening) try { recognitionRef.current?.start(); } catch (e) { }
             };
 
@@ -225,20 +235,26 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
     const processCommandSemantically = async (text: string) => {
         if (isProcessing) return;
-        setIsProcessing(true);
+        send({ type: 'PROCESS' });
         addLog('BRAIN', 'Enviando a Cerebro...', { text });
 
         try {
             const response = await fetch('/api/voice/process', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text, history })
             });
 
             if (!response.ok) throw new Error('API Error');
 
             const result = await response.json();
             addLog('BRAIN', 'Respuesta recibida', result);
+
+            // Actualizar historial (max 3 turnos)
+            setHistory(prev => [...prev.slice(-2),
+            { role: 'user', content: text },
+            { role: 'assistant', content: result.response_text || '' }
+            ]);
 
             if (result.action === 'navigate') {
                 speak(result.response_text || `Yendo a ${result.section}`);
@@ -256,15 +272,26 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                     });
                 });
             }
+            else if (result.action === 'clarify' && onClarify) {
+                // Si el backend envía ítems potables, los pasamos
+                onClarify(result.items || [], result.response_text);
+                speak(result.response_text || 'Tengo varias opciones. ¿Puedes confirmarme cuál prefieres?');
+            }
             else if (result.action === 'unknown') {
                 speak(result.response_text || '¿Puedes repetir?');
             }
 
         } catch (error: any) {
             addLog('ERROR', 'Fallo Cerebro', error.message);
+
+            // Fallback 1: Local Regex
             const localFallback = localMatcher.current?.match(text);
+
+            // Fallback 2: Fuzzy Match (Directo a item)
+            const fuzzyMatch = fuzzyMatcher.current?.findBestMatch(text);
+
             if (localFallback && localFallback.action !== 'unknown') {
-                addLog('SYSTEM', '⚠️ Modo Emergencia Local');
+                addLog('SYSTEM', '⚠️ Modo Emergencia Local (Regex)');
                 if (localFallback.action === 'navigate') onNavigate(localFallback.section!);
                 if (localFallback.action === 'add_to_cart') {
                     onItemFound({
@@ -273,9 +300,13 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                         modifications: localFallback.modifications
                     });
                 }
+            } else if (fuzzyMatch) {
+                addLog('SYSTEM', '⚠️ Modo Emergencia Local (Fuzzy)');
+                onItemFound({ id: fuzzyMatch.id, quantity: 1 });
+                speak(`¿Te refieres a ${fuzzyMatch.name}? Te lo añado.`);
             }
         } finally {
-            setIsProcessing(false);
+            send({ type: 'FINISH' });
         }
     };
 

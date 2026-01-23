@@ -1,7 +1,7 @@
 'use client';
 
 // @ts-ignore
-import { useConversation } from '@elevenlabs/react';
+import { useConversation } from '@11labs/react';
 import { useCallback, useState } from 'react';
 import { useOrderStore } from '@/stores/useOrderStore';
 
@@ -51,8 +51,9 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
                     }
                 }
 
-                await conversation.startSession({
-                    agentId: agentId
+                await (conversation as any).startSession({
+                    agentId: agentId,
+                    connectionType: 'websocket'
                 });
             } catch (error) {
                 console.error('Fallo al iniciar sesión de voz:', error);

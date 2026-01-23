@@ -9,10 +9,11 @@
   },
   "dependencies": {
     "@11labs/react": "^0.2.0",
-    "@elevenlabs/client": "latest",
+    "@elevenlabs/client": "^0.13.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.91.0",
     "@types/uuid": "^10.0.0",
+    "@xstate/react": "^6.0.0",
     "clsx": "latest",
     "framer-motion": "^12.29.0",
     "fuse.js": "^7.1.0",
@@ -28,6 +29,7 @@
     "stopwords": "^0.0.9",
     "tailwind-merge": "latest",
     "uuid": "^13.0.0",
+    "xstate": "^5.25.1",
     "zod": "latest",
     "zustand": "latest"
   },

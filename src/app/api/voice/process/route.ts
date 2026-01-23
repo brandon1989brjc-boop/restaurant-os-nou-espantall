@@ -8,51 +8,54 @@ const groq = new Groq({
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, context } = await req.json();
+    const { text, context, history = [] } = await req.json();
 
     const systemPrompt = `
-Eres el cerebro de una "Carta Inteligente" para el restaurante Nou Espantall.
-Tu tarea es convertir el lenguaje natural (en cualquier idioma) en un JSON estructurado de pedido.
+Eres la IA de Nou Espantall. Tu objetivo es extraer pedidos estructurados usando Named Entity Recognition (NER) y Slot Filling.
 
-### REGLAS DE NAVEGACIÓN:
-- Secciones de menú (IDs): "entrantes", "bocadillos", "para_compartir", "tablas", "torradas", "combinados", "montaditos", "postres", "bebidas".
-- Secciones especiales: "home" (inicio), "cart" (ver carrito), "cuenta" (ver cuenta).
+### REGLAS DE SLOT FILLING:
+1. **Identifica Entidades**: Extrae Item (ID base), Quantity (Número), y Modifiers (add/remove/preference).
+2. **Análisis de Dependencias**: Vincula los modificadores al plato más cercano gramaticalmente. Ejemplo: "Ensalada con salsa y Burguer sin salsa" -> Ensalada(con salsa), Burguer(sin salsa).
+3. **Contexto Conversacional**: USA EL HISTORIAL para resolver referencias anafóricas.
+4. **Slots Obligatorios**: Si un ítem requiere una elección (punto de carne, aliño) y falta, pregunta amablemente.
 
-### REGLAS CRÍTICAS:
-1. Mapea siempre los platos a los IDs canónicos presentes en el MENÚ proporcionado.
-2. Identifica cantidades y modificadores. Atribuye los modificadores al plato correcto de forma jerárquica.
-3. El JSON SIEMPRE debe incluir un "response_text" amable y breve en el idioma del usuario (ej: "¡Claro! Te añado las patatas.").
-4. Si el usuario pide navegar, usa la acción "navigate" y especifica la "section".
-
-### MENÚ DE CONTEXTO:
-${JSON.stringify(menuData.categories.map(c => ({
-      id: c.id,
-      name: c.name.es,
-      items: c.items.map(i => ({ id: i.id, name: i.name.es }))
-    })))}
-
-### FORMATO DE SALIDA (JSON PURO):
+### ESQUEMA DE SALIDA (JSON):
 {
-  "action": "navigate" | "add_to_cart" | "clear_cart" | "unknown",
-  "section": "string_id",
+  "action": "navigate" | "add_to_cart" | "clear_cart" | "clarify",
   "items": [
     {
       "item_id": "string",
       "quantity": number,
-      "modifications": [
-        { "type": "remove" | "add" | "preference", "content": "string" }
-      ]
+      "modifications": [{ "type": "add"|"remove"|"preference", "content": "string" }]
     }
   ],
-  "response_text": "Respuesta breve y amable en el idioma del usuario"
+  "section": "string_id",
+  "response_text": "Explicación breve o pregunta de aclaración"
 }
+
+### MENÚ (Multilingüe):
+${JSON.stringify(menuData.categories.map(c => ({
+      id: c.id,
+      names: { es: c.name.es, en: (c.name as any).en },
+      items: c.items.map(i => ({
+        id: i.id,
+        names: {
+          es: i.name.es,
+          en: (i.name as any).en,
+          synonyms: (i as any).keywords || []
+        }
+      }))
+    })))}
 `;
 
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-3), // Ventana de contexto de 3 turnos
+      { role: 'user', content: text }
+    ];
+
     const completion = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text }
-      ],
+      messages: messages as any,
       model: 'llama3-70b-8192',
       response_format: { type: 'json_object' }
     });

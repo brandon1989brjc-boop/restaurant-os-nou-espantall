@@ -11,21 +11,18 @@ import CartDrawer from '@/components/menu/CartDrawer';
 import ReviewsSection from '@/components/menu/ReviewsSection';
 import ModificationConfirmation from '@/components/menu/ModificationConfirmation';
 import ProductDetailsModal from '@/components/menu/ProductDetailsModal';
+import VoiceFallbackModal from '@/components/voice/VoiceFallbackModal';
 import BillSection from '@/components/menu/BillSection';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useRouter } from 'next/navigation';
 import { VoiceEvent, DishModification } from '@/lib/voice/types';
 import { LocalizedMenuItem } from '@/types/menu';
-import MenuHeader from '@/components/menu/MenuHeader';
-import CategoryTabs from '@/components/menu/CategoryTabs';
-import MenuGrid from '@/components/menu/MenuGrid';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('comidas');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('entrantes');
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [reviewContext, setReviewContext] = useState<{ id?: string, name?: string }>({});
   const [modificationToShow, setModificationToShow] = useState<{
     dishName: string;
@@ -39,7 +36,7 @@ export default function Home() {
   const updateBilling = useOrderStore((state) => state.updateBilling);
   const router = useRouter();
 
-  // 1. Hoisted Handlers for Build-time Safety
+  // Hoisted Handlers
   const handleTabChange = useCallback((tab: TabType) => {
     setActiveTab(tab);
     if (tab === 'comidas') setActiveCategoryId('entrantes');
@@ -91,7 +88,7 @@ export default function Home() {
     }
   }, [allDishes, addItem, handleItemClick]);
 
-  // 2. Integration Hooks
+  // Integration Hooks
   const {
     status: elStatus,
     toggleSession: toggleElSession,
@@ -117,6 +114,11 @@ export default function Home() {
     }
   });
 
+  const [fallbackContext, setFallbackContext] = useState<{ isOpen: boolean, options: LocalizedMenuItem[], message?: string }>({
+    isOpen: false,
+    options: []
+  });
+
   const {
     isListening, isProcessing, isSpeaking, toggleListening,
     logs, apiStatus, clearLogs, forceReconnect, shouldKeepListening,
@@ -138,7 +140,17 @@ export default function Home() {
         }
       }
     },
-    onItemFound: handleItemFound
+    onItemFound: handleItemFound,
+    onClarify: (options, message) => {
+      // Mapear IDs de ítems a objetos reales del menú
+      const resolvedOptions = options.map(opt => {
+        if (typeof opt === 'string') return allDishes.find(d => d.id === opt);
+        if (opt.item_id) return allDishes.find(d => d.id === opt.item_id);
+        return opt;
+      }).filter(Boolean) as LocalizedMenuItem[];
+
+      setFallbackContext({ isOpen: true, options: resolvedOptions, message });
+    }
   });
 
   const isVozActiva = elStatus === 'connected' || isListening || shouldKeepListening;
@@ -150,16 +162,30 @@ export default function Home() {
     }
   };
 
+  const filteredDishes = useMemo(() => {
+    const activeCat = categories.find(cat => cat.id === activeCategoryId);
+    if (activeCat) {
+      return activeCat.items.map(item => ({ ...item, category: activeCat.name }));
+    }
+    return [];
+  }, [activeCategoryId, categories]);
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden">
-      <MenuHeader />
-
-      <div className="flex-1 overflow-y-auto pb-32">
+      <div className="flex-1 flex overflow-hidden">
         {activeTab === 'comidas' && (
           <>
-            <CategoryTabs activeCategory={activeCategoryId} onCategoryChange={setActiveCategoryId} />
-            <div className="px-4 py-6">
-              <MenuGrid categoryId={activeCategoryId} onItemClick={handleItemClick} />
+            <CategorySidebar
+              categories={categories.map(c => ({ id: c.id, name: c.name, icon: c.icon }))}
+              activeCategoryId={activeCategoryId}
+              onCategoryClick={setActiveCategoryId}
+            />
+            <div className="flex-1 relative">
+              <DynamicScroller
+                dishes={filteredDishes}
+                onItemClick={handleItemClick}
+                onOpenReviews={(dish) => setReviewContext({ id: dish.id, name: dish.name })}
+              />
             </div>
           </>
         )}
@@ -189,6 +215,17 @@ export default function Home() {
         }}
       />
 
+      <VoiceFallbackModal
+        isOpen={fallbackContext.isOpen}
+        options={fallbackContext.options}
+        message={fallbackContext.message}
+        onClose={() => setFallbackContext(prev => ({ ...prev, isOpen: false }))}
+        onSelect={(item) => {
+          handleItemClick(item);
+          setFallbackContext(prev => ({ ...prev, isOpen: false }));
+        }}
+      />
+
       <ActionBar
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -204,9 +241,10 @@ export default function Home() {
 
       <VoiceDebugPanel
         logs={logs}
-        onClear={clearLogs}
+        onClearLogs={clearLogs}
         apiStatus={apiStatus}
-        onReconnect={forceReconnect}
+        onForceReconnect={forceReconnect}
+        isListening={isListening}
       />
     </main>
   );
