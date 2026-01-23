@@ -8,9 +8,15 @@ interface ActionBarProps {
     activeTab: TabType;
     onTabChange: (tab: TabType) => void;
     onOpenCart: () => void;
+    voiceState?: { // Opcional para evitar romper si no se pasa, aunque debe pasarse
+        isListening: boolean;
+        isProcessing: boolean;
+        isSpeaking: boolean;
+        toggleListening: () => void;
+    };
 }
 
-export default function ActionBar({ activeTab, onTabChange, onOpenCart }: ActionBarProps) {
+export default function ActionBar({ activeTab, onTabChange, onOpenCart, voiceState }: ActionBarProps) {
     const items = useOrderStore((state) => state.items);
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -53,6 +59,14 @@ export default function ActionBar({ activeTab, onTabChange, onOpenCart }: Action
         }
     ];
 
+    // Lógica visual del botón de voz
+    const isVoiceActive = voiceState?.isListening || voiceState?.isProcessing || voiceState?.isSpeaking;
+    const voiceButtonColor = voiceState?.isListening
+        ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
+        : (voiceState?.isProcessing || voiceState?.isSpeaking)
+            ? 'bg-blue-500 text-white shadow-lg shadow-blue-200 animate-bounce'
+            : 'bg-gray-100 text-gray-500 hover:bg-gray-200';
+
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-8 pointer-events-none">
             <div className="max-w-xl mx-auto bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[2.5rem] shadow-2xl p-2 flex items-center justify-between pointer-events-auto ring-1 ring-black/5">
@@ -82,15 +96,26 @@ export default function ActionBar({ activeTab, onTabChange, onOpenCart }: Action
                 <div className="flex items-center gap-1">
                     <button
                         id="mic-trigger"
-                        onClick={() => onTabChange('voice')}
-                        className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 ${activeTab === 'voice'
-                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-200'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
+                        onClick={() => {
+                            if (voiceState?.toggleListening) {
+                                voiceState.toggleListening();
+                            } else {
+                                onTabChange('voice');
+                            }
+                        }}
+                        className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 ${voiceButtonColor}`}
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
+                        {voiceState?.isSpeaking ? (
+                            <div className="flex gap-0.5 items-center h-4">
+                                <div className="w-0.5 bg-white animate-[music-bar_0.5s_ease-in-out_infinite] h-full"></div>
+                                <div className="w-0.5 bg-white animate-[music-bar_0.5s_ease-in-out_infinite_0.1s] h-2/3"></div>
+                                <div className="w-0.5 bg-white animate-[music-bar_0.5s_ease-in-out_infinite_0.2s] h-full"></div>
+                            </div>
+                        ) : (
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        )}
                     </button>
 
                     <button

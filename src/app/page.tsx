@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ActionBar, { TabType } from '@/components/menu/ActionBar';
 import CategorySidebar from '@/components/menu/CategorySidebar';
-import VoiceController from '@/components/menu/VoiceController';
+import { useNativeVoice } from '@/components/voice/useNativeVoice';
 import DynamicScroller from '@/components/menu/DynamicScroller';
 import CartDrawer from '@/components/menu/CartDrawer';
 import ReviewsSection from '@/components/menu/ReviewsSection';
@@ -34,6 +34,35 @@ export default function Home() {
   const { categories, restaurant, language, setLanguage } = useMenu();
   const addItem = useOrderStore((state) => state.addItem);
   const router = useRouter();
+
+  // ➤ INTEGRACIÓN CEREBRO NATIVO
+  const { isListening, isProcessing, isSpeaking, toggleListening } = useNativeVoice({
+    onNavigate: (section) => {
+      // Normalizamos la navegación para reutilizar la lógica de handleVoiceEvent si quisiéramos,
+      // pero aquí llamamos directo a los setters para rapidez.
+      if (section === 'cart') setIsCartOpen(true);
+      else if (section === 'home') {
+        handleTabChange('comidas');
+        setIsCartOpen(false);
+      }
+      else if (section === 'cuenta') handleTabChange('cuenta');
+      else if (section === 'kds') router.push('/kds');
+      else if (['bocadillos', 'entrantes', 'postres', 'bebidas'].includes(section)) {
+        handleTabChange('comidas');
+        setActiveCategoryId(section);
+        setIsCartOpen(false);
+      }
+    },
+    onItemFound: (item) => {
+      // Lógica inteligente: Si solo tiene ID (viene de IA), buscarlo completo.
+      // Si ya es objeto completo (viene de local), usarlo.
+      let dish = item;
+      if (item.id && !item.name) {
+        dish = allDishes.find(d => d.id === item.id) || item;
+      }
+      if (dish) handleItemClick(dish);
+    }
+  });
 
   // Helper to find item regardless of current language by checking ID
   // Note: allDishes will now contain localized strings.
@@ -285,9 +314,7 @@ export default function Home() {
         onClose={() => setIsCartOpen(false)}
       />
 
-      <VoiceController
-        onEvent={handleVoiceEvent}
-      />
+
 
       {/* Modification Confirmation Toast */}
       {modificationToShow && (
@@ -313,6 +340,7 @@ export default function Home() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenCart={() => setIsCartOpen(true)}
+        voiceState={{ isListening, isProcessing, isSpeaking, toggleListening }}
       />
     </main>
   );

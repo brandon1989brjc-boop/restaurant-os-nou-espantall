@@ -142,11 +142,12 @@ export default function DynamicScroller({
                         {/* Soft Shadow behind image */}
                         <div className="absolute inset-0 bg-black/10 blur-3xl rounded-full scale-75 transform translate-y-12"></div>
 
-                        <div className="w-[300px] h-[300px] md:w-[450px] md:h-[450px] relative animate-image">
+                        <div className="w-[300px] h-[300px] md:w-[450px] md:h-[450px] relative animate-image opacity-100">
                             <img
                                 src={currentDish.image}
                                 alt={currentDish.name}
-                                className="w-full h-full object-contain rounded-full drop-shadow-2xl hover:scale-105 transition-transform duration-500 cursor-pointer"
+                                className="w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300 cursor-pointer"
+                                style={{ filter: 'none' }} // Forzar sin filtros extraños
                             />
                         </div>
 
