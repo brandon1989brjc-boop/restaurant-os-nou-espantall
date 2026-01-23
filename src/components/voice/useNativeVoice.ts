@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { NativeBrain, NativeIntent } from '@/lib/voice/NativeBrain';
+// import { NativeBrain, NativeIntent } from '@/lib/voice/NativeBrain';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useSound } from '@/hooks/useSound';
@@ -18,19 +18,11 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
     const [transcript, setTranscript] = useState('');
 
     // Necesitamos el menú actualizado para el cerebro
-    const { allDishes } = useMenu();
+    // const { allDishes } = useMenu(); // Ya no necesitamos allDishes localmente para el cerebro, solo para referencias si quisiéramos
     const { addItem } = useOrderStore();
-    const brainRef = useRef<NativeBrain | null>(null);
+    // const brainRef = useRef<NativeBrain | null>(null);
     const recognitionRef = useRef<any>(null);
     const playSound = useSound(); // Feedback auditivo
-
-    // Inicializar el cerebro cuando carga el menú
-    useEffect(() => {
-        if (allDishes.length > 0) {
-            brainRef.current = new NativeBrain(allDishes);
-            console.log("🧠 Native Brain Cargado con", allDishes.length, "platos");
-        }
-    }, [allDishes]);
 
     // Configurar Speech Recognition
     useEffect(() => {
@@ -46,7 +38,8 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
                 recognition.onstart = () => {
                     setIsListening(true);
-                    playSound(); // Beep de inicio
+                    setTranscript("Escuchando...");
+                    playSound();
                 };
 
                 recognition.onend = () => {
@@ -59,7 +52,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                     console.log("🎤 Escuchado:", text);
                     setIsProcessing(true);
 
-                    await processCommand(text);
+                    await processCommandWithAI(text);
 
                     setIsProcessing(false);
                 };
@@ -69,48 +62,50 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                 console.error("Este navegador no soporta Web Speech API");
             }
         }
-    }, [allDishes]); // Dependencia de items para regenerar el proceso si cambia, aunque el brainRef lo maneja interno
+    }, []); // Dependencia vacía, ya no dependemos de allDishes para inicializar brain
 
     const speak = (text: string) => {
+        if (typeof window === 'undefined') return;
         setIsSpeaking(true);
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
+        // Seleccionar una voz más natural si es posible de Google
+        const voices = window.speechSynthesis.getVoices();
+        const googleVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('es'));
+        if (googleVoice) utterance.voice = googleVoice;
         utterance.rate = 1.0;
         utterance.onend = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utterance);
     };
 
-    const processCommand = async (text: string) => {
-        if (!brainRef.current) return;
+    const processCommandWithAI = async (text: string) => {
+        try {
+            // Llamada al Nuevo Cerebro IA
+            const response = await fetch('/api/voice/brain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
 
-        const intent = brainRef.current.process(text);
-        console.log("🤖 Intención detectada:", intent);
+            const command = await response.json();
+            console.log("🤖 IA Responde:", command);
 
-        switch (intent.type) {
-            case 'NAVIGATE':
-                speak(`Yendo a ${intent.section}`);
-                onNavigate(intent.section);
-                break;
-
-            case 'ADD_TO_CART':
-                // Aquí la magia: Si el usuario dice "quiero hamburguesa", y hay modificadores,
-                // la UI debería abrir el modal. NativeBrain nos da el ITEM completo.
-                speak(`Añadiendo ${intent.item.name}`);
-
-                // Opción A: Añadir directo (si no tiene modificadores)
-                // Opción B: Abrir modal (si tiene)
-                // Para simplificar esta demo nativa, delegamos a la UI que decida
-                onItemFound(intent.item);
-                break;
-
-            case 'BILL':
-                speak("Marchando la cuenta");
-                onNavigate('cuenta');
-                break;
-
-            case 'UNKNOWN':
+            if (command.action === 'navigate') {
+                speak(`Yendo a ${command.section}`);
+                onNavigate(command.section);
+            }
+            else if (command.action === 'add_to_cart') {
+                speak(`Añadiendo producto`);
+                // Enviamos el ID y la cantidad, Page.tsx lo resolverá con "allDishes"
+                onItemFound({ id: command.item_id, quantity: command.quantity || 1 });
+            }
+            else {
                 speak("No he entendido bien, ¿puedes repetir?");
-                break;
+            }
+
+        } catch (error) {
+            console.error("Error procesando comando:", error);
+            speak("Error de conexión con el cerebro.");
         }
     };
 

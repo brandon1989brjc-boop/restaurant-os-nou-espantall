@@ -10,6 +10,7 @@
   "dependencies": {
     "@11labs/react": "^0.2.0",
     "@elevenlabs/client": "latest",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.91.0",
     "@types/uuid": "^10.0.0",
     "clsx": "latest",

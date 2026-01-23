@@ -173,7 +173,22 @@ export default function Home() {
       setIsCartOpen(true); // Mostrar el carrito/checkout
     }
     if (event.type === 'native_item_found') {
-      handleItemClick(event.payload.item);
+      // payload.item puede ser el objeto completo (si viene de local) o { id, quantity } (si viene de IA)
+      const payloadItem = event.payload.item;
+      let dish = payloadItem;
+
+      // Si viene solo el ID (desde la API IA), buscamos el objeto completo
+      if (payloadItem.id && !payloadItem.name) {
+        dish = allDishes.find(d => d.id === payloadItem.id);
+      }
+
+      if (dish) {
+        // Si viene cantidad, la inyectamos temporalmente para que addItem la use si fuera necesario,
+        // aunque handleItemClick maneja la lógica de modales.
+        // MEJORA: Pasamos quantity a handleModalAddToCart o addItem si pudiéramos, 
+        // pero por ahora mantenemos el flujo estándar: Abrir modal o añadir.
+        handleItemClick(dish);
+      }
     }
   }, [allDishes, addItem, updateBilling, router, handleItemClick]);
 
