@@ -61,7 +61,14 @@ ${JSON.stringify(menuData.categories.map(c => ({
     return NextResponse.json(result);
 
   } catch (error: any) {
-    console.error('Error in Voice Brain:', error);
-    return NextResponse.json({ error: 'Fallo en procesamiento semántico', details: error.message }, { status: 500 });
+    console.error('CRITICAL: Voice Process Error', {
+      message: error.message,
+      hasKey: !!process.env.GROQ_API_KEY
+    });
+    return NextResponse.json({
+      error: 'Fallo en procesamiento semántico',
+      details: error.message,
+      config_error: !process.env.GROQ_API_KEY ? 'Falta GROQ_API_KEY en Vercel' : null
+    }, { status: 500 });
   }
 }
