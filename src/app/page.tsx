@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ActionBar, { TabType } from '@/components/menu/ActionBar';
 import CategorySidebar from '@/components/menu/CategorySidebar';
 import { useNativeVoice } from '@/components/voice/useNativeVoice';
+import { useElevenLabsVoice } from '@/components/voice/useElevenLabsVoice';
 import VoiceDebugPanel from '@/components/debug/VoiceDebugPanel';
 import DynamicScroller from '@/components/menu/DynamicScroller';
 import CartDrawer from '@/components/menu/CartDrawer';
@@ -36,24 +37,46 @@ export default function Home() {
   const addItem = useOrderStore((state) => state.addItem);
   const router = useRouter();
 
-  // ➤ INTEGRACIÓN CEREBRO NATIVO
+  // ➤ INTEGRACIÓN ELEVENLABS (Nivel Producción - ConvAI)
   const {
-    isListening, isProcessing, isSpeaking, toggleListening,
-    logs, apiStatus, clearLogs, forceReconnect, shouldKeepListening,
-    analyser
-  } = useNativeVoice({
+    status: elStatus,
+    toggleSession: toggleElSession,
+    isSpeaking: isElSpeaking,
+    isConnecting: isElConnecting
+  } = useElevenLabsVoice({
+    agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || 'TU_AGENT_ID',
     onNavigate: (section) => {
-      // Normalizamos la navegación para reutilizar la lógica de handleVoiceEvent si quisiéramos,
-      // pero aquí llamamos directo a los setters para rapidez.
       if (section === 'cart') setIsCartOpen(true);
       else if (section === 'home') {
         handleTabChange('comidas');
         setIsCartOpen(false);
       }
       else if (section === 'cuenta') handleTabChange('cuenta');
-      else if (section === 'kds') router.push('/kds');
       else {
-        // Navegación dinámica por categorías (entrantes, bocadillos, etc.)
+        const exists = categories.some(cat => cat.id === section);
+        if (exists) {
+          handleTabChange('comidas');
+          setActiveCategoryId(section);
+          setIsCartOpen(false);
+        }
+      }
+    }
+  });
+
+  // ➤ INTEGRACIÓN CEREBRO NATIVO (Fallback)
+  const {
+    isListening, isProcessing, isSpeaking, toggleListening,
+    logs, apiStatus, clearLogs, forceReconnect, shouldKeepListening,
+    analyser
+  } = useNativeVoice({
+    onNavigate: (section) => {
+      if (section === 'cart') setIsCartOpen(true);
+      else if (section === 'home') {
+        handleTabChange('comidas');
+        setIsCartOpen(false);
+      }
+      else if (section === 'cuenta') handleTabChange('cuenta');
+      else {
         const exists = categories.some(cat => cat.id === section);
         if (exists) {
           handleTabChange('comidas');
@@ -63,41 +86,19 @@ export default function Home() {
       }
     },
     onItemFound: (item) => {
-      let dish = { ...item };
-      if (item.id && !item.name) {
-        const found = allDishes.find(d => d.id === item.id);
-        if (found) dish = { ...found, ...item };
-      }
-
-      if (dish) {
-        // Si hay modificaciones detectadas por voz
-        if (item.modifications && item.modifications.length > 0) {
-          // Formatear para el store de pedidos
-          const modsArray = item.modifications.map((m: string) => m.toString());
-
-          // Añadir directamente al carrito con modificaciones
-          addItem({
-            ...dish,
-            modifiers: modsArray
-          } as any);
-
-          // Mostrar confirmación visual (Toast)
-          setModificationToShow({
-            dishName: dish.name || 'Plato',
-            modifications: item.modifications.map((m: string) => ({
-              type: m.startsWith('Sin') ? 'remove' : 'add',
-              ingredient: m.replace(/^(Sin |Con |Con extra de )/, '')
-            }))
-          });
-
-          setIsCartOpen(true);
-        } else {
-          // Flujo normal sin modificaciones
-          handleItemClick(dish as any);
-        }
-      }
+      handleItemFound(item);
     }
   });
+
+  // Determinar qué sistema usar (Prioridad ElevenLabs)
+  const isVozActiva = elStatus === 'connected' || isListening || shouldKeepListening;
+  const handleToggleVoz = () => {
+    if (process.env.NEXT_PUBLIC_VOICE_CLIENT === 'elevenlabs') {
+      toggleElSession();
+    } else {
+      toggleListening();
+    }
+  };
 
   // Helper to find item regardless of current language by checking ID
   const allDishes = useMemo(() => {
@@ -108,13 +109,38 @@ export default function Home() {
       }))
     );
 
-    // Incluir plato destacado si existe
     if (featuredDish) {
       return [...dishesFromCategories, { ...featuredDish, category: featuredDish.category || 'Especialidad' }];
     }
 
     return dishesFromCategories;
-  }, [categories, restaurant]);
+  }, [categories, featuredDish]);
+
+  const handleItemFound = useCallback((item: any) => {
+    let dish = { ...item };
+    if (item.id && !item.name) {
+      const found = allDishes.find(d => d.id === item.id);
+      if (found) dish = { ...found, ...item };
+    }
+
+    if (dish && dish.id) {
+      if (item.modifications && item.modifications.length > 0) {
+        const modsArray = item.modifications.map((m: any) => m.toString());
+        addItem({ ...dish, modifiers: modsArray } as any);
+
+        setModificationToShow({
+          dishName: dish.name || 'Plato',
+          modifications: item.modifications.map((m: any) => ({
+            type: m.toString().startsWith('Sin') ? 'remove' : 'add',
+            ingredient: m.toString().replace(/^(Sin |Con |Con extra de )/, '')
+          }))
+        });
+        setIsCartOpen(true);
+      } else {
+        handleItemClick(dish as any);
+      }
+    }
+  }, [allDishes, addItem]);
 
   // Handle direct add or modal open
   const handleItemClick = (item: LocalizedMenuItem) => {
@@ -383,7 +409,13 @@ export default function Home() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenCart={() => setIsCartOpen(true)}
-        voiceState={{ isListening: isListening || shouldKeepListening, isProcessing, isSpeaking, toggleListening, analyser }}
+        voiceState={{
+          isListening: isVozActiva,
+          isProcessing: isElConnecting || isProcessing,
+          isSpeaking: isElSpeaking || isSpeaking,
+          toggleListening: handleToggleVoz,
+          analyser
+        }}
       />
 
       {/* Panel de Diagnóstico para Ingeniería */}
