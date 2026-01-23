@@ -72,15 +72,10 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
-                recognition.continuous = true; // Flujo persistente (Reporte 2.1.1)
-                recognition.lang = 'es-ES';
-                recognition.interimResults = true; // Reflejo inmediato (Reporte 2.1.1)
+                recognition.continuous = true;
+                recognition.lang = 'es';
+                recognition.interimResults = true;
                 recognition.maxAlternatives = 1;
-
-                // Forzar procesamiento local si está disponible (Reporte 2.2)
-                if ('processLocally' in recognition) {
-                    (recognition as any).processLocally = true;
-                }
 
                 recognition.onstart = () => {
                     setIsListening(true);
