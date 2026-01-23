@@ -27,6 +27,7 @@ export interface MenuItem {
     image: string;
     videoUrl?: string;
     modifierGroups?: ModifierGroup[];
+    keywords?: string[]; // Para búsqueda semántica
 }
 
 export interface MenuCategory {
@@ -77,6 +78,7 @@ export interface LocalizedMenuItem extends Omit<MenuItem, 'name' | 'description'
     description: string;
     originalName: MultiLanguageString; // Keep track for matching
     modifierGroups?: LocalizedModifierGroup[];
+    keywords?: string[];
 }
 
 export interface LocalizedMenuCategory extends Omit<MenuCategory, 'name' | 'items'> {

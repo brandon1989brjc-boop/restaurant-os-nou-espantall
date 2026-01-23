@@ -24,6 +24,13 @@
     "category": "Bocadillos",
     "image": "/hamburguesa_espantall_nou_1768935612743.png",
     "videoUrl": "#",
+    "keywords": [
+      "hamburguesa de la casa",
+      "la especialidad",
+      "burger completa",
+      "quiero carne",
+      "hamburguesa premium"
+    ],
     "modifierGroups": [
       {
         "id": "meat_point",
@@ -112,6 +119,12 @@
           "category": "Entrantes",
           "rating": 4.7,
           "image": "/ensalada_cabra_nou_1768935598483.png",
+          "keywords": [
+            "algo verde",
+            "queso de cabra",
+            "vegetariano",
+            "ensalada especial"
+          ],
           "modifierGroups": [
             {
               "id": "dressing",
@@ -188,7 +201,12 @@
           "price": 6.5,
           "category": "Bocadillos",
           "rating": 4.6,
-          "image": "/bocadillo_jamon_nou_1768935698852.png"
+          "image": "/bocadillo_jamon_nou_1768935698852.png",
+          "keywords": [
+            "bocata de lomo",
+            "algo rápido",
+            "lomo con queso"
+          ]
         },
         {
           "id": "h_esp_item",

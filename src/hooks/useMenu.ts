@@ -20,7 +20,8 @@ export const useMenu = () => {
                 ...opt,
                 name: opt.name[language]
             }))
-        }))
+        })),
+        keywords: item.keywords
     });
 
     const categories = menuData.categories.map(cat => ({
