@@ -147,7 +147,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
     const processCommandWithAI = async (text: string) => {
         try {
-            addLog('BRAIN', 'Enviando a Gemini...', { text });
+            addLog('BRAIN', 'Enviando a Brain Local...', { text });
 
             const response = await fetch('/api/voice/brain', {
                 method: 'POST',
@@ -158,21 +158,53 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
             const command = await response.json();
             addLog('BRAIN', 'Respuesta recibida', command);
 
-            // EJECUTAR ACCIÓN
+            // VALIDACIÓN Y EJECUCIÓN EXPLÍCITA
+            if (!command || !command.action) {
+                addLog('ERROR', 'Comando inválido o vacío', command);
+                speak("No entendí bien.");
+                return;
+            }
+
+            // EJECUTAR ACCIÓN CON LOGS DETALLADOS
             if (command.action === 'navigate') {
+                if (!command.section) {
+                    addLog('ERROR', 'Navigate sin sección especificada', command);
+                    speak("No sé a dónde ir.");
+                    return;
+                }
+
+                addLog('SYSTEM', `🔄 Ejecutando navegación a: ${command.section}`);
                 speak(`Marchando a ${command.section}`);
                 onNavigate(command.section);
+                addLog('SYSTEM', `✅ Navegación ejecutada`);
             }
             else if (command.action === 'add_to_cart') {
+                if (!command.item_id) {
+                    addLog('ERROR', 'Add to cart sin item_id', command);
+                    speak("No encontré ese producto.");
+                    return;
+                }
+
+                addLog('SYSTEM', `🛒 Ejecutando añadir item: ${command.item_id} x${command.quantity || 1}`);
                 speak(`Añadido!`);
                 onItemFound({ id: command.item_id, quantity: command.quantity || 1 });
+                addLog('SYSTEM', `✅ Item añadido`);
+            }
+            else if (command.action === 'unknown') {
+                addLog('SYSTEM', '❓ Comando desconocido');
+                speak("¿Cómo?");
+            }
+            else if (command.action === 'error') {
+                addLog('ERROR', 'Error del servidor', command.error);
+                speak("Hubo un problema.");
             }
             else {
-                speak("¿Cómo?"); // Respuesta corta y natural
+                addLog('ERROR', `Acción no reconocida: ${command.action}`, command);
+                speak("No sé qué hacer con eso.");
             }
 
         } catch (error: any) {
-            addLog('ERROR', 'Fallo en proceso AI', error.message);
+            addLog('ERROR', 'Fallo en proceso completo', error.message);
             speak("Error de conexión.");
         }
     };

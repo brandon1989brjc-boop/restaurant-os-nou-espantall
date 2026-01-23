@@ -32,7 +32,7 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<LocalizedMenuItem | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const { categories, restaurant, language, setLanguage } = useMenu();
+  const { categories, restaurant, language, setLanguage, featuredDish } = useMenu();
   const addItem = useOrderStore((state) => state.addItem);
   const router = useRouter();
 
@@ -51,10 +51,14 @@ export default function Home() {
       }
       else if (section === 'cuenta') handleTabChange('cuenta');
       else if (section === 'kds') router.push('/kds');
-      else if (['bocadillos', 'entrantes', 'postres', 'bebidas'].includes(section)) {
-        handleTabChange('comidas');
-        setActiveCategoryId(section);
-        setIsCartOpen(false);
+      else {
+        // Navegación dinámica por categorías (entrantes, bocadillos, etc.)
+        const exists = categories.some(cat => cat.id === section);
+        if (exists) {
+          handleTabChange('comidas');
+          setActiveCategoryId(section);
+          setIsCartOpen(false);
+        }
       }
     },
     onItemFound: (item) => {
@@ -69,13 +73,21 @@ export default function Home() {
   });
 
   // Helper to find item regardless of current language by checking ID
-  // Note: allDishes will now contain localized strings.
-  const allDishes = useMemo(() => categories.flatMap(cat =>
-    cat.items.map(item => ({
-      ...item,
-      category: cat.name
-    }))
-  ), [categories]);
+  const allDishes = useMemo(() => {
+    const dishesFromCategories = categories.flatMap(cat =>
+      cat.items.map(item => ({
+        ...item,
+        category: cat.name
+      }))
+    );
+
+    // Incluir plato destacado si existe
+    if (featuredDish) {
+      return [...dishesFromCategories, { ...featuredDish, category: featuredDish.category || 'Especialidad' }];
+    }
+
+    return dishesFromCategories;
+  }, [categories, restaurant]);
 
   // Handle direct add or modal open
   const handleItemClick = (item: LocalizedMenuItem) => {
