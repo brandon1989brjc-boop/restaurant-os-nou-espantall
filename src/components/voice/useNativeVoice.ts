@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSound } from '@/hooks/useSound';
+import { LocalIntentMatcher } from '@/lib/voice/LocalIntentMatcher';
+import menuData from '@/lib/menu.json';
 
 interface UseNativeVoiceProps {
     onNavigate: (section: string) => void;
@@ -15,9 +17,6 @@ interface Log {
     data?: any;
 }
 
-import { LocalIntentMatcher } from '@/lib/voice/LocalIntentMatcher';
-import menuData from '@/lib/menu.json';
-
 export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps) {
     const [isListening, setIsListening] = useState(false);
     const [shouldKeepListening, setShouldKeepListening] = useState(false);
@@ -28,11 +27,24 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
     const [apiStatus, setApiStatus] = useState<'ok' | 'error' | 'checking' | 'unknown'>('ok');
 
     const recognitionRef = useRef<any>(null);
-    const playSound = useSound();
-
-    // Web Audio API para visualización (Reporte 5.1)
+    const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
     const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
+    const localMatcher = useRef<LocalIntentMatcher | null>(null);
+    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const playSound = useSound();
+
+    // Cargar voces de forma robusta
+    useEffect(() => {
+        const loadVoices = () => {
+            const v = window.speechSynthesis.getVoices();
+            if (v.length > 0) voicesRef.current = v;
+        };
+        loadVoices();
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }, []);
 
     const addLog = (source: Log['source'], message: string, data?: any) => {
         const newLog = {
@@ -44,8 +56,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         setLogs(prev => [newLog, ...prev].slice(0, 50));
     };
 
-    // 1. Preparar el Cerebro Local Permanente
-    const localMatcher = useRef<LocalIntentMatcher | null>(null);
+    // 1. Preparar el Cerebro Local Permanente (Fallback)
     useEffect(() => {
         const data: any = menuData;
         const simpleMenu = data.categories.flatMap((cat: any) =>
@@ -80,7 +91,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                 recognition.onstart = () => {
                     setIsListening(true);
                     setTranscript("Escuchando...");
-                    initAudioContext(); // Desbloquear audio (Reporte 5.3)
+                    initAudioContext();
                 };
 
                 recognition.onend = () => {
@@ -88,7 +99,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                     if (shouldKeepListening && !isProcessing && !isSpeaking) {
                         setTimeout(() => {
                             try { recognition.start(); } catch (e) { }
-                        }, 100);
+                        }, 250);
                     }
                 };
 
@@ -104,11 +115,21 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                         }
                     }
 
-                    if (interimTranscript) setTranscript(interimTranscript);
+                    if (interimTranscript) {
+                        setTranscript(interimTranscript);
+                        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                        silenceTimerRef.current = setTimeout(() => {
+                            if (interimTranscript && !isProcessing && !isSpeaking) {
+                                addLog('BRAIN', 'VAD: Procesando silencio...');
+                                processCommandSemantically(interimTranscript);
+                            }
+                        }, 1800);
+                    }
 
                     if (finalTranscript) {
+                        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                         setTranscript(finalTranscript);
-                        addLog('MIC', `Escuchado: "${finalTranscript}"`);
+                        addLog('MIC', `Final: "${finalTranscript}"`);
                         processCommandSemantically(finalTranscript);
                     }
                 };
@@ -139,23 +160,19 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                 analyserRef.current = audioContextRef.current.createAnalyser();
                 analyserRef.current.fftSize = 256;
 
-                // Capturar Micro para visualización (Reporte 5.1)
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const source = audioContextRef.current.createMediaStreamSource(stream);
                 source.connect(analyserRef.current);
-                addLog('SYSTEM', 'Visualizador de audio conectado');
             }
         } catch (e) {
-            addLog('ERROR', 'Fallo al iniciar visualización de audio', e);
+            addLog('ERROR', 'Fallo Visualizador', e);
         }
     };
 
     const speak = (text: string) => {
         if (typeof window === 'undefined' || !text) return;
 
-        // Detener cualquier habla previa
         window.speechSynthesis.cancel();
-
         setIsSpeaking(true);
         addLog('SYSTEM', `🔈 Hablando: ${text}`);
 
@@ -164,43 +181,52 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
             try { recognitionRef.current.stop(); } catch (e) { }
         }
 
-        // Pequeño delay para que el hardware del micro se libere
         setTimeout(() => {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'es-ES';
 
-            // Buscar la mejor voz disponible
-            const voices = window.speechSynthesis.getVoices();
-            const preferredVoice = voices.find(v => v.lang.includes('es') && v.name.includes('Google'))
+            // Re-obtener voces si es necesario
+            const voices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.lang.includes('es') && (v.name.includes('Google') || v.name.includes('Helena')))
                 || voices.find(v => v.lang.includes('es'))
                 || voices[0];
 
             if (preferredVoice) utterance.voice = preferredVoice;
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
+
+            const safetyTimeout = setTimeout(() => {
+                if (isSpeaking) {
+                    setIsSpeaking(false);
+                    addLog('SYSTEM', '🔈 Timeout de habla detectado');
+                    if (wasListening) try { recognitionRef.current?.start(); } catch (e) { }
+                }
+            }, 10000);
 
             utterance.onend = () => {
+                clearTimeout(safetyTimeout);
                 setIsSpeaking(false);
                 addLog('SYSTEM', '🔈 Fin de habla');
                 if (wasListening) {
                     setTimeout(() => {
                         try { recognitionRef.current?.start(); } catch (e) { }
-                    }, 200);
+                    }, 300);
                 }
             };
 
             utterance.onerror = (e) => {
-                addLog('ERROR', 'Error en síntesis de voz', e);
+                clearTimeout(safetyTimeout);
+                addLog('ERROR', 'Error TTS', e);
                 setIsSpeaking(false);
+                if (wasListening) try { recognitionRef.current?.start(); } catch (e) { }
             };
 
             window.speechSynthesis.speak(utterance);
-        }, 150);
+        }, 200);
     };
 
     const processCommandSemantically = async (text: string) => {
+        if (isProcessing) return;
         setIsProcessing(true);
-        addLog('BRAIN', 'Enviando a Cerebro Semántico (LLM)...', { text });
+        addLog('BRAIN', 'Enviando a Cerebro...', { text });
 
         try {
             const response = await fetch('/api/voice/process', {
@@ -209,10 +235,10 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                 body: JSON.stringify({ text })
             });
 
-            if (!response.ok) throw new Error('Error en API de procesamiento');
+            if (!response.ok) throw new Error('API Error');
 
             const result = await response.json();
-            addLog('BRAIN', 'Entendimiento SEMÁNTICO recibido', result);
+            addLog('BRAIN', 'Respuesta recibida', result);
 
             if (result.action === 'navigate') {
                 speak(result.response_text || `Yendo a ${result.section}`);
@@ -231,15 +257,14 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                 });
             }
             else if (result.action === 'unknown') {
-                speak(result.response_text || 'No te he entendido del todo, ¿puedes repetir?');
+                speak(result.response_text || '¿Puedes repetir?');
             }
 
         } catch (error: any) {
-            addLog('ERROR', 'Fallo en Cerebro Semántico', error.message);
-            // Fallback al matcher local si el servidor falla (Regla 80/20)
+            addLog('ERROR', 'Fallo Cerebro', error.message);
             const localFallback = localMatcher.current?.match(text);
             if (localFallback && localFallback.action !== 'unknown') {
-                addLog('SYSTEM', '⚠️ Usando Matcher Local de Emergencia');
+                addLog('SYSTEM', '⚠️ Modo Emergencia Local');
                 if (localFallback.action === 'navigate') onNavigate(localFallback.section!);
                 if (localFallback.action === 'add_to_cart') {
                     onItemFound({
@@ -258,13 +283,13 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         if (isListening || shouldKeepListening) {
             setShouldKeepListening(false);
             recognitionRef.current?.stop();
-            addLog('SYSTEM', 'Escucha detenida manualmente');
-            playSound(); // Sonido de apagado
+            addLog('SYSTEM', 'Escucha OFF');
+            playSound();
         } else {
             setShouldKeepListening(true);
             recognitionRef.current?.start();
-            addLog('SYSTEM', 'Escucha iniciada (Modo Continuo)');
-            playSound(); // Sonido de encendido
+            addLog('SYSTEM', 'Escucha ON');
+            playSound();
         }
     }, [isListening, shouldKeepListening]);
 
@@ -282,7 +307,6 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         transcript,
         toggleListening,
         hasSupport: !!recognitionRef.current,
-        // Debug props
         logs,
         apiStatus,
         clearLogs,
