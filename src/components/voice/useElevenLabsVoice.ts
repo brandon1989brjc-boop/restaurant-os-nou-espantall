@@ -1,5 +1,6 @@
 'use client';
 
+// @ts-ignore
 import { useConversation } from '@elevenlabs/react';
 import { useCallback, useState } from 'react';
 import { useOrderStore } from '@/stores/useOrderStore';
@@ -22,21 +23,18 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
             console.log('👋 Desconectado de ElevenLabs');
             setIsConnecting(false);
         },
-        onMessage: (message) => {
+        onMessage: (message: any) => {
             console.log('🤖 Mensaje de ElevenLabs:', message);
-            // Si ElevenLabs envía una acción estructurada (via MCP o JSON en habla)
             handleAgentMessage(message);
         },
-        onError: (error) => {
+        onError: (error: any) => {
             console.error('❌ Error de ElevenLabs:', error);
             setIsConnecting(false);
         }
     });
 
     const handleAgentMessage = (message: any) => {
-        // En ElevenLabs ConvAI, las herramientas ejecutan acciones via MCP
-        // Este hook escucha si el agente habla sobre una acción realizada
-        console.log('🤖 Escuchando respuesta del agente:', message);
+        console.log('🤖 Respuesta del agente:', message);
     };
 
     const toggleSession = useCallback(async () => {
@@ -45,10 +43,12 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
         } else {
             setIsConnecting(true);
             try {
-                // Pre-warm de audio (Evita bloqueos de navegador en Windows)
                 if (typeof window !== 'undefined') {
-                    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-                    await ctx.resume();
+                    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+                    if (AudioContextClass) {
+                        const ctx = new AudioContextClass();
+                        await ctx.resume();
+                    }
                 }
 
                 await conversation.startSession({
@@ -65,7 +65,7 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
         status: conversation.status,
         isConnecting,
         toggleSession,
-        audioLevel: conversation.audioLevel,
-        isSpeaking: conversation.isSpeaking
+        audioLevel: (conversation as any).audioLevel,
+        isSpeaking: (conversation as any).isSpeaking
     };
 }
