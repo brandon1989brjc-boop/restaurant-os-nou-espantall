@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ActionBar, { TabType } from '@/components/menu/ActionBar';
 import CategorySidebar from '@/components/menu/CategorySidebar';
 import { useNativeVoice } from '@/components/voice/useNativeVoice';
+import VoiceDebugPanel from '@/components/debug/VoiceDebugPanel';
 import DynamicScroller from '@/components/menu/DynamicScroller';
 import CartDrawer from '@/components/menu/CartDrawer';
 import ReviewsSection from '@/components/menu/ReviewsSection';
@@ -36,7 +37,10 @@ export default function Home() {
   const router = useRouter();
 
   // ➤ INTEGRACIÓN CEREBRO NATIVO
-  const { isListening, isProcessing, isSpeaking, toggleListening } = useNativeVoice({
+  const {
+    isListening, isProcessing, isSpeaking, toggleListening,
+    logs, apiStatus, clearLogs, forceReconnect, shouldKeepListening
+  } = useNativeVoice({
     onNavigate: (section) => {
       // Normalizamos la navegación para reutilizar la lógica de handleVoiceEvent si quisiéramos,
       // pero aquí llamamos directo a los setters para rapidez.
@@ -340,7 +344,16 @@ export default function Home() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenCart={() => setIsCartOpen(true)}
-        voiceState={{ isListening, isProcessing, isSpeaking, toggleListening }}
+        voiceState={{ isListening: isListening || shouldKeepListening, isProcessing, isSpeaking, toggleListening }}
+      />
+
+      {/* Panel de Diagnóstico para Ingeniería */}
+      <VoiceDebugPanel
+        logs={logs}
+        apiStatus={apiStatus}
+        isListening={isListening || shouldKeepListening}
+        onClearLogs={clearLogs}
+        onForceReconnect={forceReconnect}
       />
     </main>
   );

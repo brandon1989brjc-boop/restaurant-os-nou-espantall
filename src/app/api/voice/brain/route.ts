@@ -59,45 +59,69 @@ export async function POST(req: NextRequest) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const prompt = `
-            Eres el camarero virtual experto de "Nou Espantall Bar".
-            Tu trabajo es interpretar la intención del cliente basándote en su VOZ y el MENÚ disponible.
-            
-            MENÚ DISPONIBLE:
-            ${JSON.stringify(simpleMenu.map((i: any) => ({ id: i.id, name: i.name, keywords: i.keywords })))}
+        // Estrategia Multi-Modelo: Intentar el más rápido, si falla, usar el más estable
+        let model;
+        let result;
 
-            INSTRUCCIONES CLAVE:
-            1. Si el cliente quiere PEDIR algo (comer, beber, añadir), devuelve action: "add_to_cart".
-            2. Si el cliente quiere IR a una sección (ver carta, cuenta, cocina), devuelve action: "navigate".
-            3. Si el cliente pide la CUENTA, devuelve action: "navigate", section: "cuenta".
-            
-            IMPORTANTE:
-            - Sé MUY flexible. "Dame una birra" = Cerveza (o bebida).
-            - Si dice "Hamburguesa", asume la "Hamburguesa Espantall" si es la única o la más obvia.
-            - Extrae cantidades numéricas si existen (ej. "dos hamburguesas").
+        const modelsToTry = ["gemini-1.5-flash", "gemini-pro"];
+        let lastError;
 
-            INPUT DEL CLIENTE: "${text}"
+        for (const modelName of modelsToTry) {
+            try {
+                model = genAI.getGenerativeModel({ model: modelName });
 
-            Responde SOLO con un JSON válido con este formato:
-            {
-                "action": "navigate" | "add_to_cart" | "unknown",
-                "section": "home" | "cart" | "cuenta" | "kds" | "entrantes" | "bocadillos" (solo si action es navigate),
-                "item_id": "id_del_producto" (solo si action es add_to_cart),
-                "quantity": 1 (number, default 1)
+                const prompt = `
+                    Eres el camarero virtual experto de "Nou Espantall Bar".
+                    Tu trabajo es interpretar la intención del cliente basándote en su VOZ y el MENÚ disponible.
+                    
+                    MENÚ DISPONIBLE APLANADO:
+                    ${JSON.stringify(simpleMenu.map((i: any) => ({ id: i.id, name: i.name, keywords: i.keywords })))}
+        
+                    INSTRUCCIONES CLAVE:
+                    1. Si el cliente quiere PEDIR algo (comer, beber, añadir), devuelve action: "add_to_cart".
+                    2. Si el cliente quiere IR a una sección (ver carta, cuenta, cocina), devuelve action: "navigate".
+                    3. Si el cliente pide la CUENTA, devuelve action: "navigate", section: "cuenta".
+                    
+                    IMPORTANTE:
+                    - Sé MUY flexible. "Dame una birra" = Cerveza (o bebida).
+                    - Asume el plato más probable si es ambiguo.
+                    - Extrae cantidades numéricas si existen (ej. "dos hamburguesas").
+        
+                    INPUT DEL CLIENTE: "${text}"
+        
+                    Responde SOLO con un JSON válido con este formato:
+                    {
+                        "action": "navigate" | "add_to_cart" | "unknown",
+                        "section": "home" | "cart" | "cuenta" | "kds" | "entrantes" | "bocadillos",
+                        "item_id": "id_del_producto",
+                        "quantity": 1
+                    }
+                `;
+
+                result = await model.generateContent(prompt);
+                break; // Si funciona, salimos del bucle
+            } catch (e) {
+                console.warn(`Fallo con modelo ${modelName}, intentando siguiente...`, e);
+                lastError = e;
+                continue; // Si falla, probamos el siguiente
             }
-        `;
+        }
 
-        const result = await model.generateContent(prompt);
+        if (!result) throw lastError || new Error("Todos los modelos fallaron");
         const response = await result.response;
         const jsonString = response.text().replace(/```json|```/g, '').trim();
         const command = JSON.parse(jsonString);
 
         return NextResponse.json(command);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Brain Error:", error);
-        return NextResponse.json({ action: 'unknown', error: 'Server error' });
+        // Devolvemos el error detallado para que el panel de debug (y el usuario técnico) sepa qué pasa
+        return NextResponse.json({
+            action: 'error',
+            error: error.message || 'Error desconocido en servidor',
+            details: JSON.stringify(error)
+        }, { status: 500 });
     }
 }
