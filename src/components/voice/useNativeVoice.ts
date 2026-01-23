@@ -151,24 +151,51 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
     };
 
     const speak = (text: string) => {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || !text) return;
+
+        // Detener cualquier habla previa
+        window.speechSynthesis.cancel();
+
         setIsSpeaking(true);
-        addLog('SYSTEM', `${text}`);
+        addLog('SYSTEM', `🔈 Hablando: ${text}`);
 
         const wasListening = shouldKeepListening;
-        if (recognitionRef.current) recognitionRef.current.stop();
+        if (recognitionRef.current) {
+            try { recognitionRef.current.stop(); } catch (e) { }
+        }
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES';
+        // Pequeño delay para que el hardware del micro se libere
+        setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
 
-        utterance.onend = () => {
-            setIsSpeaking(false);
-            if (wasListening) {
-                setTimeout(() => { try { recognitionRef.current?.start(); } catch (e) { } }, 100);
-            }
-        };
+            // Buscar la mejor voz disponible
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.lang.includes('es') && v.name.includes('Google'))
+                || voices.find(v => v.lang.includes('es'))
+                || voices[0];
 
-        window.speechSynthesis.speak(utterance);
+            if (preferredVoice) utterance.voice = preferredVoice;
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            utterance.onend = () => {
+                setIsSpeaking(false);
+                addLog('SYSTEM', '🔈 Fin de habla');
+                if (wasListening) {
+                    setTimeout(() => {
+                        try { recognitionRef.current?.start(); } catch (e) { }
+                    }, 200);
+                }
+            };
+
+            utterance.onerror = (e) => {
+                addLog('ERROR', 'Error en síntesis de voz', e);
+                setIsSpeaking(false);
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }, 150);
     };
 
     const processCommandSemantically = async (text: string) => {
