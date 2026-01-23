@@ -109,7 +109,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
                     if (finalTranscript) {
                         setTranscript(finalTranscript);
                         addLog('MIC', `Escuchado: "${finalTranscript}"`);
-                        processCommandLocally(finalTranscript);
+                        processCommandSemantically(finalTranscript);
                     }
                 };
 
@@ -171,37 +171,60 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         window.speechSynthesis.speak(utterance);
     };
 
-    const processCommandLocally = async (text: string) => {
-        if (!localMatcher.current) return;
-
+    const processCommandSemantically = async (text: string) => {
         setIsProcessing(true);
-        addLog('BRAIN', 'Analizando nativamente...', { text });
+        addLog('BRAIN', 'Enviando a Cerebro Semántico (LLM)...', { text });
 
-        const command = localMatcher.current.match(text);
-        addLog('BRAIN', 'Intención detectada localmente', command);
+        try {
+            const response = await fetch('/api/voice/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
 
-        if (command && command.action !== 'unknown') {
-            if (command.action === 'navigate') {
-                addLog('SYSTEM', `Navegando a ${command.section}`);
-                speak(`Yendo a ${command.section}`);
-                onNavigate(command.section || 'home');
+            if (!response.ok) throw new Error('Error en API de procesamiento');
+
+            const result = await response.json();
+            addLog('BRAIN', 'Entendimiento SEMÁNTICO recibido', result);
+
+            if (result.action === 'navigate') {
+                speak(result.response_text || `Yendo a ${result.section}`);
+                onNavigate(result.section);
             }
-            else if (command.action === 'add_to_cart') {
-                addLog('SYSTEM', `Añadiendo producto ${command.item_id}`);
-                speak(`¡Marchando!`);
-                onItemFound({
-                    id: command.item_id,
-                    quantity: command.quantity || 1,
-                    modifications: command.modifications
+            else if (result.action === 'add_to_cart' && result.items) {
+                speak(result.response_text || '¡Marchando!');
+                result.items.forEach((item: any) => {
+                    onItemFound({
+                        id: item.item_id,
+                        quantity: item.quantity || 1,
+                        modifications: item.modifications?.map((m: any) =>
+                            `${m.type === 'remove' ? 'Sin' : 'Con'} ${m.content}`
+                        )
+                    });
                 });
             }
-        } else {
-            // Si el motor local no está seguro, podríamos silenciarlo o pedir aclaración.
-            // Siguiendo el reporte de autonomía, evitaremos ruidos innecesarios.
-            addLog('SYSTEM', '❓ Intención no clara, ignorando para evitar falsos positivos');
-        }
+            else if (result.action === 'unknown') {
+                speak(result.response_text || 'No te he entendido del todo, ¿puedes repetir?');
+            }
 
-        setIsProcessing(false);
+        } catch (error: any) {
+            addLog('ERROR', 'Fallo en Cerebro Semántico', error.message);
+            // Fallback al matcher local si el servidor falla (Regla 80/20)
+            const localFallback = localMatcher.current?.match(text);
+            if (localFallback && localFallback.action !== 'unknown') {
+                addLog('SYSTEM', '⚠️ Usando Matcher Local de Emergencia');
+                if (localFallback.action === 'navigate') onNavigate(localFallback.section!);
+                if (localFallback.action === 'add_to_cart') {
+                    onItemFound({
+                        id: localFallback.item_id,
+                        quantity: localFallback.quantity,
+                        modifications: localFallback.modifications
+                    });
+                }
+            }
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const toggleListening = useCallback(() => {
