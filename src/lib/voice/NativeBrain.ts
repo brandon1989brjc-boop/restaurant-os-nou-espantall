@@ -17,7 +17,7 @@ export class NativeBrain {
         // Configuramos Fuse para buscar en nombres y descripciones con "tolerancia a fallos"
         this.fuse = new Fuse(menuItems, {
             keys: ['name', 'description', 'category'],
-            threshold: 0.4, // 0.0 = coincidencia exacta, 1.0 = coincide con todo. 0.4 es buen balance.
+            threshold: 0.5, // Más permisivo para coincidir con "queso" -> "Tarta de Queso"
             distance: 100,
         });
     }

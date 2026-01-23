@@ -95,16 +95,22 @@ export default function DynamicScroller({
 
         // GSAP Animation for the transition
         if (contentRef.current) {
+            const items = contentRef.current.querySelectorAll('.animate-item');
+            const image = contentRef.current.querySelector('.animate-image');
+
+            gsap.killTweensOf(items);
+            gsap.killTweensOf(image);
+
             gsap.fromTo(
-                contentRef.current.querySelectorAll('.animate-item'),
+                items,
                 { opacity: 0, x: 50 },
                 { opacity: 1, x: 0, duration: 0.8, stagger: 0.1, ease: 'power3.out' }
             );
 
             gsap.fromTo(
-                contentRef.current.querySelector('.animate-image'),
-                { opacity: 0, scale: 0.8, rotate: -15 },
-                { opacity: 1, scale: 1, rotate: 0, duration: 1.2, ease: 'elastic.out(1, 0.75)' }
+                image,
+                { opacity: 0, scale: 0.8, rotate: -5 },
+                { opacity: 1, scale: 1, rotate: 0, duration: 1, ease: 'power2.out' } // Simplificado para estabilidad
             );
         }
     }, [activeIndex, dishes]);

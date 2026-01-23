@@ -9,7 +9,6 @@ import CartDrawer from '@/components/menu/CartDrawer';
 import ReviewsSection from '@/components/menu/ReviewsSection';
 import ModificationConfirmation from '@/components/menu/ModificationConfirmation';
 import ProductDetailsModal from '@/components/menu/ProductDetailsModal';
-import ElevenLabsWidgetIntegrated from '@/components/menu/ElevenLabsWidgetIntegrated';
 import BillSection from '@/components/menu/BillSection';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrderStore } from '@/stores/useOrderStore';
@@ -84,62 +83,7 @@ export default function Home() {
 
   const updateBilling = useOrderStore((state) => state.updateBilling);
 
-  // Escuchar eventos globales desde el Client Bridge (ElevenLabs Widget)
-  useEffect(() => {
-    const handleNavigate = (e: any) => {
-      const section = e.detail;
-      console.log('⚡ Evento recibido:', section);
 
-      if (section === 'cart') setIsCartOpen(true);
-      else if (section === 'home') {
-        handleTabChange('comidas');
-        setIsCartOpen(false);
-      } else if (['bocadillos', 'entrantes', 'postres', 'bebidas', 'tablas', 'para_compartir', 'torradas', 'combinados', 'montaditos'].includes(section)) {
-        handleTabChange('comidas');
-        setActiveCategoryId(section);
-        setIsCartOpen(false);
-      }
-    };
-
-    window.addEventListener('ros:navigate', handleNavigate);
-    return () => window.removeEventListener('ros:navigate', handleNavigate);
-  }, []);
-
-  // SISTEMA DE POLLING SYNC (El "cerebro" real)
-  useEffect(() => {
-    let lastProcessedTime = Date.now();
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/sync');
-        const data = await res.json();
-
-        if (data.command && data.timestamp > lastProcessedTime) {
-          console.log('📬 Nuevo comando recibido:', data.command);
-          lastProcessedTime = data.timestamp;
-          const cmd = data.command;
-
-          if (cmd.action === 'navigate') {
-            // Disparar evento de navegación local
-            window.dispatchEvent(new CustomEvent('ros:navigate', { detail: cmd.section }));
-          } else if (cmd.action === 'add-to-cart') {
-            // Logic to add to cart
-            const dish = allDishes.find(d =>
-              d.name.toLowerCase().includes(cmd.item.toLowerCase()) ||
-              d.id.toLowerCase() === cmd.item.toLowerCase()
-            );
-            if (dish) {
-              addItem(dish, 'Voz');
-              setIsCartOpen(true);
-            }
-          }
-        }
-      } catch (e) {
-        // Silently fail on network error
-      }
-    }, 1500); // Check every 1.5s
-
-    return () => clearInterval(interval);
-  }, [allDishes, addItem]);
 
   const handleVoiceEvent = useCallback((event: VoiceEvent) => {
     console.log('Voice Event:', event);
@@ -347,26 +291,7 @@ export default function Home() {
         onAddToCart={handleModalAddToCart}
       />
 
-      {/* ElevenLabs Widget with Integrated Actions */}
-      {process.env.NEXT_PUBLIC_VOICE_CLIENT === 'widget' && (
-        <ElevenLabsWidgetIntegrated
-          agentId={process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || 'agent_5901kfkre4wwf2wr9reb6kj6de16'}
-          onNavigate={(section) => {
-            if (section === 'cart') setIsCartOpen(true);
-            else if (['bocadillos', 'entrantes', 'postres', 'bebidas'].includes(section)) {
-              handleTabChange('comidas');
-              setActiveCategoryId(section);
-            }
-          }}
-          onAddToCart={(item) => {
-            const dish = allDishes.find(d => d.name.toLowerCase().includes(item.item_name.toLowerCase()));
-            if (dish) {
-              addItem(dish, item.assigned_to);
-              setIsCartOpen(true);
-            }
-          }}
-        />
-      )}
+
 
       {/* Bottom Action Bar */}
       <ActionBar
