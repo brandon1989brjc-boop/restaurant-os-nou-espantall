@@ -40,7 +40,7 @@ export default function VoiceDebugPanel({ logs, apiStatus, isListening, onClearL
                     {/* Status Monitor */}
                     <div className="grid grid-cols-2 gap-2 mb-4">
                         <div className="bg-black/50 p-2 rounded border border-green-900">
-                            <span className="text-gray-500 block">Groq AI API</span>
+                            <span className="text-gray-500 block">Local Brain</span>
                             <span className={`font-bold ${apiStatus === 'ok' ? 'text-green-500' : 'text-red-500'}`}>
                                 {apiStatus.toUpperCase()}
                             </span>
