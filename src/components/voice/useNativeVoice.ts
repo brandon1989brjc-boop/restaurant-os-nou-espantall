@@ -128,8 +128,9 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         setIsSpeaking(true);
         addLog('SYSTEM', `Hablando: "${text}"`);
 
-        // Pausar escucha mientras habla para que no se escuche a sí mismo
-        // recognitionRef.current?.stop();
+        // Pausar reconocimiento mientras habla para evitar eco
+        const wasListening = shouldKeepListening;
+        if (isListening || shouldKeepListening) recognitionRef.current?.stop();
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
@@ -140,6 +141,12 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
 
         utterance.onend = () => {
             setIsSpeaking(false);
+            // Si estaba en modo continuo, reactivar al terminar
+            if (wasListening) {
+                setTimeout(() => {
+                    try { recognitionRef.current?.start(); } catch (e) { }
+                }, 100);
+            }
         };
 
         window.speechSynthesis.speak(utterance);
