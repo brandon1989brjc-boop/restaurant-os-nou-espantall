@@ -4,22 +4,24 @@ import { useOrderStore } from '@/stores/useOrderStore';
 
 export type TabType = 'cuenta' | 'bebidas' | 'comidas' | 'reseñas' | 'voice';
 
+import VoiceVisualizer from '@/components/voice/VoiceVisualizer';
+
 interface ActionBarProps {
     activeTab: TabType;
     onTabChange: (tab: TabType) => void;
     onOpenCart: () => void;
-    voiceState?: { // Opcional para evitar romper si no se pasa, aunque debe pasarse
+    voiceState?: {
         isListening: boolean;
         isProcessing: boolean;
         isSpeaking: boolean;
         toggleListening: () => void;
+        analyser: AnalyserNode | null;
     };
 }
 
 export default function ActionBar({ activeTab, onTabChange, onOpenCart, voiceState }: ActionBarProps) {
     const items = useOrderStore((state) => state.items);
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
-
     const tabs: { id: TabType; icon: React.ReactNode; label: string }[] = [
         {
             id: 'cuenta',
@@ -59,8 +61,6 @@ export default function ActionBar({ activeTab, onTabChange, onOpenCart, voiceSta
         }
     ];
 
-    // Lógica visual del botón de voz
-    const isVoiceActive = voiceState?.isListening || voiceState?.isProcessing || voiceState?.isSpeaking;
     const voiceButtonColor = voiceState?.isListening
         ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
         : (voiceState?.isProcessing || voiceState?.isSpeaking)
@@ -69,6 +69,20 @@ export default function ActionBar({ activeTab, onTabChange, onOpenCart, voiceSta
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-8 pointer-events-none">
+            {/* Audio Wave Visualization (Reporte 5.2) */}
+            {(voiceState?.isListening || voiceState?.isSpeaking || voiceState?.isProcessing) && (
+                <div className="max-w-xl mx-auto mb-2 flex justify-end pr-10">
+                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100 shadow-xl p-2 w-32 h-10 overflow-hidden pointer-events-auto">
+                        <VoiceVisualizer
+                            analyser={voiceState.analyser}
+                            isListening={voiceState.isListening}
+                            isProcessing={voiceState.isProcessing}
+                            isSpeaking={voiceState.isSpeaking}
+                        />
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-xl mx-auto bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[2.5rem] shadow-2xl p-2 flex items-center justify-between pointer-events-auto ring-1 ring-black/5">
                 <div className="flex items-center gap-1">
                     {tabs.map((tab) => (
@@ -105,14 +119,22 @@ export default function ActionBar({ activeTab, onTabChange, onOpenCart, voiceSta
                         }}
                         className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 ${voiceButtonColor}`}
                     >
+                        {/* Animated Pulses for Listening/Speaking */}
+                        {voiceState?.isListening && (
+                            <div className="absolute inset-0 rounded-full scale-150 animate-ping bg-red-400/20 pointer-events-none"></div>
+                        )}
+                        {voiceState?.isSpeaking && (
+                            <div className="absolute inset-0 rounded-full scale-125 animate-pulse bg-blue-400/30 pointer-events-none"></div>
+                        )}
+
                         {voiceState?.isSpeaking ? (
-                            <div className="flex gap-0.5 items-center h-4">
+                            <div className="flex gap-0.5 items-center h-4 relative z-10">
                                 <div className="w-0.5 bg-white animate-[music-bar_0.5s_ease-in-out_infinite] h-full"></div>
                                 <div className="w-0.5 bg-white animate-[music-bar_0.5s_ease-in-out_infinite_0.1s] h-2/3"></div>
                                 <div className="w-0.5 bg-white animate-[music-bar_0.5s_ease-in-out_infinite_0.2s] h-full"></div>
                             </div>
                         ) : (
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                             </svg>
                         )}

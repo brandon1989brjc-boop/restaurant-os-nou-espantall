@@ -15,17 +15,24 @@ interface Log {
     data?: any;
 }
 
+import { LocalIntentMatcher } from '@/lib/voice/LocalIntentMatcher';
+import menuData from '@/lib/menu.json';
+
 export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps) {
     const [isListening, setIsListening] = useState(false);
-    const [shouldKeepListening, setShouldKeepListening] = useState(false); // Nuevo flag para "Always On"
+    const [shouldKeepListening, setShouldKeepListening] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [logs, setLogs] = useState<Log[]>([]);
-    const [apiStatus, setApiStatus] = useState<'ok' | 'error' | 'checking' | 'unknown'>('checking');
+    const [apiStatus, setApiStatus] = useState<'ok' | 'error' | 'checking' | 'unknown'>('ok');
 
     const recognitionRef = useRef<any>(null);
     const playSound = useSound();
+
+    // Web Audio API para visualización (Reporte 5.1)
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
 
     const addLog = (source: Log['source'], message: string, data?: any) => {
         const newLog = {
@@ -34,186 +41,172 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
             message,
             data
         };
-        // Log en consola también para debug
-        console.log(`[${newLog.source}] ${message}`, data || '');
-        setLogs(prev => [newLog, ...prev].slice(0, 50)); // Guardar últimos 50
+        setLogs(prev => [newLog, ...prev].slice(0, 50));
     };
 
-    // 1. Health Check Inicial
+    // 1. Preparar el Cerebro Local Permanente
+    const localMatcher = useRef<LocalIntentMatcher | null>(null);
     useEffect(() => {
-        const checkAPI = async () => {
-            try {
-                // Hacemos una petición "dummy" para ver si la API responde
-                const res = await fetch('/api/voice/brain', {
-                    method: 'POST',
-                    body: JSON.stringify({ text: 'ping checks' })
-                });
-                if (res.ok) setApiStatus('ok');
-                else setApiStatus('error');
-            } catch (e) {
-                setApiStatus('error');
-            }
-        };
-        checkAPI();
+        const data: any = menuData;
+        const simpleMenu = data.categories.flatMap((cat: any) =>
+            cat.items.map((item: any) => ({
+                id: item.id,
+                name: item.name.es,
+                category: cat.name.es,
+                keywords: item.keywords || []
+            }))
+        ).concat(data.featuredDish ? [{
+            id: data.featuredDish.id,
+            name: data.featuredDish.name.es,
+            category: 'Especialidad',
+            keywords: data.featuredDish.keywords || []
+        }] : []);
+
+        localMatcher.current = new LocalIntentMatcher(simpleMenu);
     }, []);
 
-    // 2. Configurar Speech Recognition
+    // 2. Configurar Speech Recognition Robusta
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
-                recognition.continuous = false; // "false" es más estable, lo simulamos reiniciando manual
+                recognition.continuous = true; // Flujo persistente (Reporte 2.1.1)
                 recognition.lang = 'es-ES';
-                recognition.interimResults = false;
+                recognition.interimResults = true; // Reflejo inmediato (Reporte 2.1.1)
                 recognition.maxAlternatives = 1;
+
+                // Forzar procesamiento local si está disponible (Reporte 2.2)
+                if ('processLocally' in recognition) {
+                    (recognition as any).processLocally = true;
+                }
 
                 recognition.onstart = () => {
                     setIsListening(true);
                     setTranscript("Escuchando...");
+                    initAudioContext(); // Desbloquear audio (Reporte 5.3)
                 };
 
                 recognition.onend = () => {
                     setIsListening(false);
-                    // Lógica "Always On": Si el usuario no lo apagó manualmente, volvemos a arrancar
-                    if (shouldKeepListening && !isProcessing) { // No reiniciar si estamos procesando
-                        // Pequeño delay para no saturar
+                    if (shouldKeepListening && !isProcessing && !isSpeaking) {
                         setTimeout(() => {
-                            try {
-                                // verify again inside timeout if we should restart
-                                if (!recognitionRef.current) return;
-                                // Only restart if intended
-                                recognition.start();
-                            } catch (e) { console.error("Error reiniciando micro:", e); }
-                        }, 200);
+                            try { recognition.start(); } catch (e) { }
+                        }, 100);
                     }
                 };
 
                 recognition.onresult = async (event: any) => {
-                    const text = event.results[0][0].transcript;
-                    setTranscript(text);
-                    addLog('MIC', `Escuchado: "${text}"`);
+                    let interimTranscript = '';
+                    let finalTranscript = '';
 
-                    setIsProcessing(true);
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
 
-                    // Detenemos temporalmente el reinicio automático mientras pensamos
-                    // Para que no se solapen voces con escuchas
-                    const wasListening = shouldKeepListening;
-                    // setShouldKeepListening(false); 
+                    if (interimTranscript) setTranscript(interimTranscript);
 
-                    await processCommandWithAI(text);
-
-                    setIsProcessing(false);
-                    // Si estaba en modo continuo, reactivamos para que onend lo reinicie
-                    // setShouldKeepListening(wasListening); 
+                    if (finalTranscript) {
+                        setTranscript(finalTranscript);
+                        addLog('MIC', `Escuchado: "${finalTranscript}"`);
+                        processCommandLocally(finalTranscript);
+                    }
                 };
 
                 recognition.onerror = (event: any) => {
                     addLog('ERROR', 'Error de reconocimiento', event.error);
-                    if (event.error === 'not-allowed') {
-                        setShouldKeepListening(false); // Si deniegan permiso, parar todo
-                    }
                 };
 
                 recognitionRef.current = recognition;
-            } else {
-                addLog('ERROR', "Navegador no soporta Speech Recognition");
             }
         }
-    }, [shouldKeepListening, isProcessing]);
+    }, [shouldKeepListening, isProcessing, isSpeaking]);
+
+    const initAudioContext = async () => {
+        if (typeof window === 'undefined') return;
+
+        try {
+            if (!audioContextRef.current) {
+                const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+                audioContextRef.current = new AudioContext();
+            }
+
+            if (audioContextRef.current.state === 'suspended') {
+                await audioContextRef.current.resume();
+            }
+
+            if (!analyserRef.current) {
+                analyserRef.current = audioContextRef.current.createAnalyser();
+                analyserRef.current.fftSize = 256;
+
+                // Capturar Micro para visualización (Reporte 5.1)
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioContextRef.current.createMediaStreamSource(stream);
+                source.connect(analyserRef.current);
+                addLog('SYSTEM', 'Visualizador de audio conectado');
+            }
+        } catch (e) {
+            addLog('ERROR', 'Fallo al iniciar visualización de audio', e);
+        }
+    };
 
     const speak = (text: string) => {
         if (typeof window === 'undefined') return;
         setIsSpeaking(true);
-        addLog('SYSTEM', `Hablando: "${text}"`);
+        addLog('SYSTEM', `${text}`);
 
-        // Pausar reconocimiento mientras habla para evitar eco
         const wasListening = shouldKeepListening;
-        if (isListening || shouldKeepListening) recognitionRef.current?.stop();
+        if (recognitionRef.current) recognitionRef.current.stop();
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        const voices = window.speechSynthesis.getVoices();
-        const googleVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('es'));
-        if (googleVoice) utterance.voice = googleVoice;
-        utterance.rate = 1.0;
 
         utterance.onend = () => {
             setIsSpeaking(false);
-            // Si estaba en modo continuo, reactivar al terminar
             if (wasListening) {
-                setTimeout(() => {
-                    try { recognitionRef.current?.start(); } catch (e) { }
-                }, 100);
+                setTimeout(() => { try { recognitionRef.current?.start(); } catch (e) { } }, 100);
             }
         };
 
         window.speechSynthesis.speak(utterance);
     };
 
-    const processCommandWithAI = async (text: string) => {
-        try {
-            addLog('BRAIN', 'Enviando a Brain Local...', { text });
+    const processCommandLocally = async (text: string) => {
+        if (!localMatcher.current) return;
 
-            const response = await fetch('/api/voice/brain', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
-            });
+        setIsProcessing(true);
+        addLog('BRAIN', 'Analizando nativamente...', { text });
 
-            const command = await response.json();
-            addLog('BRAIN', 'Respuesta recibida', command);
+        const command = localMatcher.current.match(text);
+        addLog('BRAIN', 'Intención detectada localmente', command);
 
-            // VALIDACIÓN Y EJECUCIÓN EXPLÍCITA
-            if (!command || !command.action) {
-                addLog('ERROR', 'Comando inválido o vacío', command);
-                speak("No entendí bien.");
-                return;
-            }
-
-            // EJECUTAR ACCIÓN CON LOGS DETALLADOS
+        if (command && command.action !== 'unknown') {
             if (command.action === 'navigate') {
-                if (!command.section) {
-                    addLog('ERROR', 'Navigate sin sección especificada', command);
-                    speak("No sé a dónde ir.");
-                    return;
-                }
-
-                addLog('SYSTEM', `🔄 Ejecutando navegación a: ${command.section}`);
-                speak(`Marchando a ${command.section}`);
-                onNavigate(command.section);
-                addLog('SYSTEM', `✅ Navegación ejecutada`);
+                addLog('SYSTEM', `Navegando a ${command.section}`);
+                speak(`Yendo a ${command.section}`);
+                onNavigate(command.section || 'home');
             }
             else if (command.action === 'add_to_cart') {
-                if (!command.item_id) {
-                    addLog('ERROR', 'Add to cart sin item_id', command);
-                    speak("No encontré ese producto.");
-                    return;
-                }
-
-                addLog('SYSTEM', `🛒 Ejecutando añadir item: ${command.item_id} x${command.quantity || 1}`);
-                speak(`Añadido!`);
-                onItemFound({ id: command.item_id, quantity: command.quantity || 1 });
-                addLog('SYSTEM', `✅ Item añadido`);
+                addLog('SYSTEM', `Añadiendo producto ${command.item_id}`);
+                speak(`¡Marchando!`);
+                onItemFound({
+                    id: command.item_id,
+                    quantity: command.quantity || 1,
+                    modifications: command.modifications
+                });
             }
-            else if (command.action === 'unknown') {
-                addLog('SYSTEM', '❓ Comando desconocido');
-                speak("¿Cómo?");
-            }
-            else if (command.action === 'error') {
-                addLog('ERROR', 'Error del servidor', command.error);
-                speak("Hubo un problema.");
-            }
-            else {
-                addLog('ERROR', `Acción no reconocida: ${command.action}`, command);
-                speak("No sé qué hacer con eso.");
-            }
-
-        } catch (error: any) {
-            addLog('ERROR', 'Fallo en proceso completo', error.message);
-            speak("Error de conexión.");
+        } else {
+            // Si el motor local no está seguro, podríamos silenciarlo o pedir aclaración.
+            // Siguiendo el reporte de autonomía, evitaremos ruidos innecesarios.
+            addLog('SYSTEM', '❓ Intención no clara, ignorando para evitar falsos positivos');
         }
+
+        setIsProcessing(false);
     };
 
     const toggleListening = useCallback(() => {
@@ -249,6 +242,7 @@ export function useNativeVoice({ onNavigate, onItemFound }: UseNativeVoiceProps)
         apiStatus,
         clearLogs,
         forceReconnect,
-        shouldKeepListening
+        shouldKeepListening,
+        analyser: analyserRef.current
     };
 }

@@ -39,7 +39,8 @@ export default function Home() {
   // ➤ INTEGRACIÓN CEREBRO NATIVO
   const {
     isListening, isProcessing, isSpeaking, toggleListening,
-    logs, apiStatus, clearLogs, forceReconnect, shouldKeepListening
+    logs, apiStatus, clearLogs, forceReconnect, shouldKeepListening,
+    analyser
   } = useNativeVoice({
     onNavigate: (section) => {
       // Normalizamos la navegación para reutilizar la lógica de handleVoiceEvent si quisiéramos,
@@ -62,13 +63,39 @@ export default function Home() {
       }
     },
     onItemFound: (item) => {
-      // Lógica inteligente: Si solo tiene ID (viene de IA), buscarlo completo.
-      // Si ya es objeto completo (viene de local), usarlo.
-      let dish = item;
+      let dish = { ...item };
       if (item.id && !item.name) {
-        dish = allDishes.find(d => d.id === item.id) || item;
+        const found = allDishes.find(d => d.id === item.id);
+        if (found) dish = { ...found, ...item };
       }
-      if (dish) handleItemClick(dish);
+
+      if (dish) {
+        // Si hay modificaciones detectadas por voz
+        if (item.modifications && item.modifications.length > 0) {
+          // Formatear para el store de pedidos
+          const modsArray = item.modifications.map((m: string) => m.toString());
+
+          // Añadir directamente al carrito con modificaciones
+          addItem({
+            ...dish,
+            modifiers: modsArray
+          } as any);
+
+          // Mostrar confirmación visual (Toast)
+          setModificationToShow({
+            dishName: dish.name || 'Plato',
+            modifications: item.modifications.map((m: string) => ({
+              type: m.startsWith('Sin') ? 'remove' : 'add',
+              ingredient: m.replace(/^(Sin |Con |Con extra de )/, '')
+            }))
+          });
+
+          setIsCartOpen(true);
+        } else {
+          // Flujo normal sin modificaciones
+          handleItemClick(dish as any);
+        }
+      }
     }
   });
 
@@ -356,7 +383,7 @@ export default function Home() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenCart={() => setIsCartOpen(true)}
-        voiceState={{ isListening: isListening || shouldKeepListening, isProcessing, isSpeaking, toggleListening }}
+        voiceState={{ isListening: isListening || shouldKeepListening, isProcessing, isSpeaking, toggleListening, analyser }}
       />
 
       {/* Panel de Diagnóstico para Ingeniería */}
