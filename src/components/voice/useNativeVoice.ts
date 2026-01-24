@@ -245,7 +245,10 @@ export function useNativeVoice({ onNavigate, onItemFound, onClarify }: UseNative
                 body: JSON.stringify({ text, history })
             });
 
-            if (!response.ok) throw new Error('API Error');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.details || errData.error || 'API Error');
+            }
 
             const result = await response.json();
             addLog('BRAIN', 'Respuesta recibida', result);
@@ -281,7 +284,10 @@ export function useNativeVoice({ onNavigate, onItemFound, onClarify }: UseNative
                 speak(result.response_text || '¿Puedes repetir?');
             }
 
+            setApiStatus('ok');
+
         } catch (error: any) {
+            setApiStatus('error');
             addLog('ERROR', 'Fallo Cerebro', error.message);
 
             // Fallback 1: Local Regex

@@ -48,9 +48,13 @@ ${JSON.stringify(menuData.categories.map(c => ({
     })))}
 `;
 
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error('Falta la variable de entorno GROQ_API_KEY. Configúrala en Vercel o en tu archivo .env');
+    }
+
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...history.slice(-3), // Ventana de contexto de 3 turnos
+      ...(Array.isArray(history) ? history.slice(-3) : []), // Seguridad extra
       { role: 'user', content: text }
     ];
 
@@ -60,18 +64,28 @@ ${JSON.stringify(menuData.categories.map(c => ({
       response_format: { type: 'json_object' }
     });
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}');
-    return NextResponse.json(result);
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error('Groq no devolvió contenido');
+
+    try {
+      const result = JSON.parse(content);
+      return NextResponse.json(result);
+    } catch (e) {
+      console.error('JSON Parse Error:', content);
+      throw new Error('La IA no devolvió un JSON válido');
+    }
 
   } catch (error: any) {
     console.error('CRITICAL: Voice Process Error', {
       message: error.message,
+      stack: error.stack,
       hasKey: !!process.env.GROQ_API_KEY
     });
+
     return NextResponse.json({
-      error: 'Fallo en procesamiento semántico',
+      error: 'Error de Procesamiento Semántico',
       details: error.message,
-      config_error: !process.env.GROQ_API_KEY ? 'Falta GROQ_API_KEY en Vercel' : null
+      config_status: !!process.env.GROQ_API_KEY ? 'Key OK' : 'Key Missing'
     }, { status: 500 });
   }
 }
