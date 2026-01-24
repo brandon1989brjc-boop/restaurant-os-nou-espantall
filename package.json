@@ -8,8 +8,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@11labs/react": "^0.2.0",
     "@elevenlabs/client": "^0.13.0",
+    "@elevenlabs/react": "^0.13.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.91.0",
     "@types/uuid": "^10.0.0",

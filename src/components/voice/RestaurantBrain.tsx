@@ -1,6 +1,6 @@
 'use client';
 
-import { useConversation } from '@11labs/react';
+import { useConversation } from '@elevenlabs/react';
 import { useEffect, useCallback } from 'react';
 
 // ➤ DEFINICIÓN DE HERRAMIENTAS (Client-Side Tools)

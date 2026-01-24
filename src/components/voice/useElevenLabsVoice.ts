@@ -1,7 +1,6 @@
 'use client';
 
-// @ts-ignore
-import { useConversation } from '@11labs/react';
+import { useConversation } from '@elevenlabs/react';
 import { useCallback, useState } from 'react';
 import { useOrderStore } from '@/stores/useOrderStore';
 
@@ -16,26 +15,22 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
 
     const conversation = useConversation({
         onConnect: () => {
-            console.log('✅ Conectado a ElevenLabs');
+            console.log('✅ Connected to ElevenLabs');
             setIsConnecting(false);
         },
         onDisconnect: () => {
-            console.log('👋 Desconectado de ElevenLabs');
+            console.log('👋 Disconnected from ElevenLabs');
             setIsConnecting(false);
         },
         onMessage: (message: any) => {
-            console.log('🤖 Mensaje de ElevenLabs:', message);
-            handleAgentMessage(message);
+            console.log('🤖 ElevenLabs Message:', message);
+            // Handle conversation tools/logic here if needed
         },
         onError: (error: any) => {
-            console.error('❌ Error de ElevenLabs:', error);
+            console.error('❌ ElevenLabs Error:', error);
             setIsConnecting(false);
         }
     });
-
-    const handleAgentMessage = (message: any) => {
-        console.log('🤖 Respuesta del agente:', message);
-    };
 
     const toggleSession = useCallback(async () => {
         if (conversation.status === 'connected') {
@@ -43,11 +38,14 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
         } else {
             setIsConnecting(true);
             try {
+                // Ensure AudioContext is active for mobile browsers
                 if (typeof window !== 'undefined') {
                     const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
                     if (AudioContextClass) {
                         const ctx = new AudioContextClass();
-                        await ctx.resume();
+                        if (ctx.state === 'suspended') {
+                            await ctx.resume();
+                        }
                     }
                 }
 
@@ -56,7 +54,7 @@ export function useElevenLabsVoice({ agentId, onNavigate }: ElevenLabsVoiceProps
                     connectionType: 'websocket'
                 });
             } catch (error) {
-                console.error('Fallo al iniciar sesión de voz:', error);
+                console.error('Failed to start voice session:', error);
                 setIsConnecting(false);
             }
         }
