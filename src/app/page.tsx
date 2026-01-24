@@ -12,6 +12,7 @@ import ReviewsSection from '@/components/menu/ReviewsSection';
 import ModificationConfirmation from '@/components/menu/ModificationConfirmation';
 import ProductDetailsModal from '@/components/menu/ProductDetailsModal';
 import VoiceFallbackModal from '@/components/voice/VoiceFallbackModal';
+import { useVapi } from '@/components/voice/useVapi';
 import BillSection from '@/components/menu/BillSection';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrderStore } from '@/stores/useOrderStore';
@@ -153,10 +154,39 @@ export default function Home() {
     }
   });
 
-  const isVozActiva = elStatus === 'connected' || isListening || shouldKeepListening;
+  const {
+    isCalling: isVapiCalling,
+    isSpeaking: isVapiSpeaking,
+    toggleCall: toggleVapiCall,
+    volume: vapiVolume
+  } = useVapi({
+    onNavigate: (section) => {
+      if (section === 'cart') setIsCartOpen(true);
+      else if (section === 'home') {
+        handleTabChange('comidas');
+        setIsCartOpen(false);
+      }
+      else if (section === 'cuenta') handleTabChange('cuenta');
+      else {
+        const exists = categories.some(cat => cat.id === section);
+        if (exists) {
+          handleTabChange('comidas');
+          setActiveCategoryId(section);
+          setIsCartOpen(false);
+        }
+      }
+    },
+    onItemFound: handleItemFound,
+    onCartClear: () => useOrderStore.getState().items.forEach(item => useOrderStore.getState().removeItem(item.id))
+  });
+
+  const isVozActiva = elStatus === 'connected' || isListening || shouldKeepListening || isVapiCalling;
   const handleToggleVoz = () => {
-    if (process.env.NEXT_PUBLIC_VOICE_CLIENT === 'elevenlabs') {
+    const client = process.env.NEXT_PUBLIC_VOICE_CLIENT || 'native';
+    if (client === 'elevenlabs') {
       toggleElSession();
+    } else if (client === 'vapi') {
+      toggleVapiCall();
     } else {
       toggleListening();
     }
@@ -233,7 +263,7 @@ export default function Home() {
         voiceState={{
           isListening: isVozActiva,
           isProcessing: isElConnecting || isProcessing,
-          isSpeaking: isElSpeaking || isSpeaking,
+          isSpeaking: isElSpeaking || isSpeaking || isVapiSpeaking,
           toggleListening: handleToggleVoz,
           analyser
         }}
