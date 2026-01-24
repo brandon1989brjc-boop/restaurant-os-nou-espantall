@@ -6,7 +6,7 @@
         "NEXT_PUBLIC_MOCK_MODE": "true",
         "NEXT_PUBLIC_ELEVENLABS_AGENT_ID": "agent_5901kfkre4wwf2wr9reb6kj6de16",
         "NEXT_PUBLIC_LEVELLABS_API_KEY": "sk_e9500c98a695cb2be9ea18c14659b810259d3119f9cc9813",
-        "NEXT_PUBLIC_VOICE_CLIENT": "widget",
+        "NEXT_PUBLIC_VOICE_CLIENT": "vapi",
         "NEXT_PUBLIC_VOICE_DEBUG": "true",
         "MCP_AUTH_TOKEN": "secret_nouespantall_2026_xY9zK"
     }
