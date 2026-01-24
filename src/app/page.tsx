@@ -194,6 +194,13 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    // Exponer el store globalmente para que vAPI pueda consultar totales localmente
+    if (typeof window !== 'undefined') {
+      (window as any).useOrderStore = useOrderStore;
+    }
+  }, []);
+
   const filteredDishes = useMemo(() => {
     const activeCat = categories.find(cat => cat.id === activeCategoryId);
     if (activeCat) {

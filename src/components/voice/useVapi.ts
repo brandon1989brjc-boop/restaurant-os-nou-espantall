@@ -55,10 +55,18 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
 
             // Manejar llamadas a herramientas (Tool Calls) desde vAPI
             if (message.type === 'tool-calls') {
-                const toolCalls = message.toolCalls;
+                const toolCallList = message.toolCallList || [];
 
-                toolCalls.forEach((toolCall: any) => {
-                    const { name, args } = toolCall;
+                toolCallList.forEach((toolCall: any) => {
+                    const name = toolCall.function.name;
+                    let args = toolCall.function.arguments;
+
+                    if (typeof args === 'string') {
+                        try { args = JSON.parse(args); } catch (e) { args = {}; }
+                    }
+
+                    console.log(`🔧 Ejecutando herramienta (Client): ${name}`, args);
+                    let result: any = { ok: true };
 
                     if (name === 'agregar_item') {
                         onItemFound({
@@ -69,19 +77,41 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
                                 `${m.type === 'remove' ? 'Sin' : 'Con'} ${m.content}`
                             )
                         });
+                        result = { ok: true, status: "Agregado al carrito localmente", item: args.item_id, comensal: args.comensal };
                     }
                     else if (name === 'navegar') {
-                        // Mapeo amigable de secciones para el frontend
                         const sectionMap: Record<string, string> = {
                             'carrito': 'cart',
                             'inicio': 'home',
                             'compartir': 'compartir'
                         };
                         onNavigate(sectionMap[args.section] || args.section);
+                        result = { ok: true, navigatedTo: args.section };
                     }
                     else if (name === 'limpiar_carrito' && onCartClear) {
                         onCartClear();
+                        result = { ok: true, status: "Carrito vaciado" };
                     }
+                    else if (name === 'obtener_total') {
+                        // En local calculamos el total del store
+                        const state = (window as any).useOrderStore?.getState?.();
+                        if (state) {
+                            const total = state.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+                            result = { ok: true, total: total.toFixed(2), unit: 'EUR' };
+                        } else {
+                            result = { ok: true, info: "Consultando base de datos..." };
+                        }
+                    }
+
+                    // ⭐ ENVIAR RESULTADO DE VUELTA A VAPI MANUALMENTE (Híbrido)
+                    (vapi as any)?.send({
+                        type: 'add-message',
+                        message: {
+                            role: 'tool',
+                            toolCallId: toolCall.id,
+                            content: JSON.stringify(result)
+                        }
+                    });
                 });
             }
         });
