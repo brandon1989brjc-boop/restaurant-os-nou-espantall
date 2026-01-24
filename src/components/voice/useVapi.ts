@@ -64,13 +64,20 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
                         onItemFound({
                             id: args.item_id,
                             quantity: args.quantity || 1,
+                            comensal: args.comensal || 'General',
                             modifications: args.modifications?.map((m: any) =>
                                 `${m.type === 'remove' ? 'Sin' : 'Con'} ${m.content}`
                             )
                         });
                     }
                     else if (name === 'navegar') {
-                        onNavigate(args.section);
+                        // Mapeo amigable de secciones para el frontend
+                        const sectionMap: Record<string, string> = {
+                            'carrito': 'cart',
+                            'inicio': 'home',
+                            'compartir': 'compartir'
+                        };
+                        onNavigate(sectionMap[args.section] || args.section);
                     }
                     else if (name === 'limpiar_carrito' && onCartClear) {
                         onCartClear();

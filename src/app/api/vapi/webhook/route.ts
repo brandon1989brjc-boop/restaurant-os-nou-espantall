@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
                 const { name, args, id } = toolCall;
 
                 if (name === 'agregar_item') {
-                    const { item_id, quantity = 1, modifications = [] } = args;
+                    const { item_id, quantity = 1, modifications = [], comensal = 'General' } = args;
 
                     // 1. Validar contra Supabase (Entorno Test - Tabla 'menu')
                     const { data: item, error: fetchError } = await supabaseTest
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
                     if (fetchError || !item) {
                         results.push({
                             toolCallId: id,
-                            result: `Error: El plato con ID ${item_id} no existe en la carta de Nou Espantall.`
+                            result: `Error: El plato ${item_id} no existe.`
                         });
                         continue;
                     }
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
                     const { data: order, error: orderError } = await supabaseTest
                         .from('pedidos')
                         .insert([{
-                            cliente_nombre: 'Cliente de Voz (vAPI)',
+                            cliente_nombre: comensal,
                             total: (item.precio * quantity),
                             canal: 'voz'
                         }])
@@ -55,7 +55,26 @@ export async function POST(req: NextRequest) {
 
                     results.push({
                         toolCallId: id,
-                        result: `Éxito: Se ha registrado ${quantity}x ${item.nombre_es} en la base de datos.`
+                        result: `Éxito: Se ha registrado ${quantity}x ${item.nombre_es} para ${comensal}.`
+                    });
+                }
+
+                else if (name === 'obtener_total') {
+                    const { comensal } = args;
+                    let query = supabaseTest.from('pedidos').select('total');
+
+                    if (comensal) {
+                        query = query.eq('cliente_nombre', comensal);
+                    }
+
+                    const { data, error } = await query;
+                    const total = data?.reduce((acc, curr) => acc + Number(curr.total), 0) || 0;
+
+                    results.push({
+                        toolCallId: id,
+                        result: comensal
+                            ? `El total para ${comensal} es de ${total.toFixed(2)}€.`
+                            : `El total acumulado de la mesa es de ${total.toFixed(2)}€.`
                     });
                 }
 
