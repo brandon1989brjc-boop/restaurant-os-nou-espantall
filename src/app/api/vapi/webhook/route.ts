@@ -86,6 +86,49 @@ export async function POST(req: NextRequest) {
                     });
                 }
 
+                else if (name === 'finalizar_pedido') {
+                    const { customer_info, payment_intent } = args;
+
+                    // Buscar el pedido pendiente más reciente para este contexto
+                    const { data: latestOrder, error: findError } = await supabaseTest
+                        .from('pedidos')
+                        .select('id, total')
+                        .eq('estado', 'pendiente')
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (findError || !latestOrder) {
+                        results.push({
+                            toolCallId: id,
+                            result: "No he encontrado ningún pedido pendiente para finalizar. ¿Deseas añadir algo más?"
+                        });
+                        continue;
+                    }
+
+                    // Actualizar el estado del pedido a 'en_cocina' (o similar)
+                    const { error: updateError } = await supabaseTest
+                        .from('pedidos')
+                        .update({
+                            estado: 'preparando',
+                            cliente_nombre: customer_info || undefined
+                        })
+                        .eq('id', latestOrder.id);
+
+                    if (updateError) {
+                        results.push({
+                            toolCallId: id,
+                            result: "Hubo un error técnico al procesar el pedido. Por favor, inténtalo de nuevo."
+                        });
+                        continue;
+                    }
+
+                    results.push({
+                        toolCallId: id,
+                        result: `¡Perfecto! Tu pedido por un total de ${latestOrder.total}€ ha sido enviado a cocina. ${payment_intent ? `Prepararemos el cobro con ${payment_intent}.` : ''} ¡Muchas gracias!`
+                    });
+                }
+
                 else if (name === 'limpiar_carrito') {
                     results.push({
                         toolCallId: id,

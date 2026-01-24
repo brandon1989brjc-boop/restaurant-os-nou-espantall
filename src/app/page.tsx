@@ -14,11 +14,13 @@ import ProductDetailsModal from '@/components/menu/ProductDetailsModal';
 import VoiceFallbackModal from '@/components/voice/VoiceFallbackModal';
 import { useVapi } from '@/components/voice/useVapi';
 import BillSection from '@/components/menu/BillSection';
+import FeaturedDish from '@/components/menu/DishHero';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useRouter } from 'next/navigation';
 import { VoiceEvent, DishModification } from '@/lib/voice/types';
 import { LocalizedMenuItem } from '@/types/menu';
+import { supabaseTest } from '@/lib/supabaseTest';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('comidas');
@@ -90,6 +92,56 @@ export default function Home() {
       }
     }
   }, [allDishes, addItem, handleItemClick]);
+
+  // Real-time Sync with Supabase (Professional Architecture)
+  useEffect(() => {
+    console.log('🔄 Iniciando Sincronización Real-time con Supabase...');
+
+    const channel = supabaseTest
+      .channel('vapi-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'pedido_items',
+        },
+        async (payload) => {
+          console.log('📦 Nuevo ítem detectado vía Real-time:', payload);
+          const newItem = payload.new;
+
+          // Buscar el plato en el menú local para obtener los metadatos completos
+          const dish = allDishes.find(d => d.id === newItem.menu_id);
+
+          if (dish) {
+            addItem({
+              ...dish,
+              quantity: newItem.cantidad,
+              modifiers: newItem.modifications ? (Array.isArray(newItem.modifications) ? newItem.modifications.map(m => String(m)) : []) : []
+            }, newItem.comensal || 'Voz (Server)');
+
+            // Mostrar confirmación visual - Manejo robusto de nombres
+            const dishName = typeof dish.name === 'string' ? dish.name : (dish.name as any).es || 'Plato';
+
+            setModificationToShow({
+              dishName: dishName,
+              modifications: (newItem.modifications || []).map((m: any) => ({
+                type: String(m).startsWith('Sin') ? 'remove' : 'add',
+                ingredient: String(m).replace(/^(Sin |Con |Con extra de )/, '')
+              }))
+            });
+            setIsCartOpen(true);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Estado de Suscripción Real-time:', status);
+      });
+
+    return () => {
+      supabaseTest.removeChannel(channel);
+    };
+  }, [allDishes, addItem]);
 
   // Integration Hooks
   const {
@@ -195,11 +247,12 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Exponer el store globalmente para que vAPI pueda consultar totales localmente
+    // Exponer el store y los platos globalmente para que vAPI pueda consultarlos localmente
     if (typeof window !== 'undefined') {
       (window as any).useOrderStore = useOrderStore;
+      (window as any).allDishes = allDishes;
     }
-  }, []);
+  }, [allDishes]);
 
   const filteredDishes = useMemo(() => {
     const activeCat = categories.find(cat => cat.id === activeCategoryId);
@@ -210,27 +263,39 @@ export default function Home() {
   }, [activeCategoryId, categories]);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden">
-      <div className="flex-1 flex overflow-hidden">
-        {activeTab === 'comidas' && (
-          <>
-            <CategorySidebar
-              categories={categories.map(c => ({ id: c.id, name: c.name, icon: c.icon }))}
-              activeCategoryId={activeCategoryId}
-              onCategoryClick={setActiveCategoryId}
-            />
-            <div className="flex-1 relative">
-              <DynamicScroller
-                dishes={filteredDishes}
-                onItemClick={handleItemClick}
-                onOpenReviews={(dish) => setReviewContext({ id: dish.id, name: dish.name })}
-              />
-            </div>
-          </>
-        )}
+    <main className="min-h-screen bg-gray-50 flex flex-col relative overflow-x-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* En móvil la sidebar de categorías va arriba, en desktop a la derecha */}
+        <div className="order-1 lg:order-2">
+          <CategorySidebar
+            categories={categories.map(c => ({ id: c.id, name: c.name, icon: c.icon }))}
+            activeCategoryId={activeCategoryId}
+            onCategoryClick={setActiveCategoryId}
+          />
+        </div>
 
-        {activeTab === 'reseñas' && <ReviewsSection dishId={reviewContext.id} dishName={reviewContext.name} />}
-        {activeTab === 'cuenta' && <BillSection />}
+        <div className="flex-1 overflow-y-auto order-2 lg:order-1 lg:mr-80">
+          {activeTab === 'comidas' && (
+            <div className="p-4 lg:p-8 space-y-8 lg:space-y-12 pb-32">
+              <section id="especialidad">
+                <FeaturedDish
+                  dish={featuredDish!}
+                  onOrder={() => handleItemClick(featuredDish! as any)}
+                />
+              </section>
+
+              <section id="menu-items">
+                <DynamicScroller
+                  dishes={filteredDishes}
+                  onItemClick={handleItemClick}
+                />
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'reseñas' && <ReviewsSection dishId={reviewContext.id} dishName={reviewContext.name} />}
+          {activeTab === 'cuenta' && <BillSection />}
+        </div>
       </div>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
