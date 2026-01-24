@@ -44,12 +44,12 @@ export default function Home() {
     if (tab !== 'reseñas') setReviewContext({});
   }, []);
 
-  const handleItemClick = useCallback((item: LocalizedMenuItem) => {
+  const handleItemClick = useCallback((item: LocalizedMenuItem, user?: string) => {
     if (item.modifierGroups && item.modifierGroups.length > 0) {
       setSelectedItem(item);
       setIsDetailsOpen(true);
     } else {
-      addItem(item);
+      addItem(item, user);
     }
   }, [addItem]);
 
@@ -71,9 +71,11 @@ export default function Home() {
     }
 
     if (dish && dish.id) {
+      const comensal = item.comensal || undefined;
+
       if (item.modifications && item.modifications.length > 0) {
         const modsArray = item.modifications.map((m: any) => m.toString());
-        addItem({ ...dish, modifiers: modsArray } as any);
+        addItem({ ...dish, modifiers: modsArray } as any, comensal);
 
         setModificationToShow({
           dishName: dish.name || 'Plato',
@@ -84,7 +86,7 @@ export default function Home() {
         });
         setIsCartOpen(true);
       } else {
-        handleItemClick(dish as any);
+        handleItemClick(dish as any, comensal);
       }
     }
   }, [allDishes, addItem, handleItemClick]);
@@ -161,8 +163,8 @@ export default function Home() {
     volume: vapiVolume
   } = useVapi({
     onNavigate: (section) => {
-      if (section === 'cart') setIsCartOpen(true);
-      else if (section === 'home') {
+      if (section === 'cart' || section === 'carrito') setIsCartOpen(true);
+      else if (section === 'home' || section === 'inicio') {
         handleTabChange('comidas');
         setIsCartOpen(false);
       }
@@ -177,7 +179,7 @@ export default function Home() {
       }
     },
     onItemFound: handleItemFound,
-    onCartClear: () => useOrderStore.getState().items.forEach(item => useOrderStore.getState().removeItem(item.id))
+    onCartClear: () => useOrderStore.getState().clearCart()
   });
 
   const isVozActiva = elStatus === 'connected' || isListening || shouldKeepListening || isVapiCalling;
