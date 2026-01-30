@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, isMockMode } from '@/lib/supabase';
 import { useOrderStore, Order, OrderItem } from '@/stores/useOrderStore';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -223,5 +223,4 @@ export function useRealtimeStatus() {
     return isConnected;
 }
 
-// Export useState que faltaba
-import { useState } from 'react';
+

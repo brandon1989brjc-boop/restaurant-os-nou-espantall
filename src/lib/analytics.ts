@@ -7,6 +7,7 @@
  * del negocio en Supabase para análisis de ROI.
  */
 
+import React, { useEffect } from 'react';
 import { supabase, isMockMode } from './supabase';
 
 /**
@@ -282,8 +283,6 @@ export function usePageTracking(pageName: string) {
     }, [pageName]);
 }
 
-// React import para el hook
-import React from 'react';
 
 /**
  * Obtener estadísticas básicas de analytics
