@@ -26,14 +26,17 @@ export async function POST(req: NextRequest) {
         }
 
         const payload = JSON.parse(rawBody);
-        const { message } = payload;
 
-        // Extraer la llamada a herramienta
-        const toolCall = message.toolCallList?.[0] || message.toolCalls?.[0];
+        // Vapi puede enviar el toolCall dentro de message o directamente en el body dependiendo de la configuración
+        const message = payload.message || payload;
+        const toolCall = message.toolCallList?.[0] || message.toolCalls?.[0] || payload.toolCallList?.[0];
 
         if (!toolCall) {
-            console.error('❌ No tool call found in payload');
-            return NextResponse.json({ error: 'No tool call found' }, { status: 400 });
+            console.error('❌ No tool call found in payload:', JSON.stringify(payload).slice(0, 100));
+            return NextResponse.json({
+                error: 'No tool call found',
+                received: Object.keys(payload)
+            }, { status: 400 });
         }
 
         currentToolCallId = toolCall.id;
