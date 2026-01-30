@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import menuData from '@/lib/menu.json';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'placeholder'
+  });
   try {
     const { text, context, history = [] } = await req.json();
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Schema de validación para pedidos entrantes
  * Usando Zod para type-safety y validación runtime

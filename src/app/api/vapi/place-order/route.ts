@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Usamos las variables de entorno para el cliente administrativo (Service Role)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Forzamos modo dinámico para que Next.js no intente pre-renderizar en build sin env vars
+export const dynamic = 'force-dynamic';
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+function getSupabaseAdmin() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('❌ Missing Supabase environment variables');
+    }
+
+    return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 /**
  * POST /api/vapi/place-order
  */
 export async function POST(req: NextRequest) {
     let currentToolCallId: string | undefined;
+    const supabaseAdmin = getSupabaseAdmin();
 
     try {
         const rawBody = await req.text();
