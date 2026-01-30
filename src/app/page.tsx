@@ -21,6 +21,8 @@ import { useRouter } from 'next/navigation';
 import { VoiceEvent, DishModification } from '@/lib/voice/types';
 import { LocalizedMenuItem } from '@/types/menu';
 import { supabaseTest } from '@/lib/supabaseTest';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { trackEvent } from '@/lib/analytics';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('comidas');
@@ -35,9 +37,24 @@ export default function Home() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const { categories, restaurant, language, setLanguage, featuredDish } = useMenu();
-  const addItem = useOrderStore((state) => state.addItem);
-  const updateBilling = useOrderStore((state) => state.updateBilling);
+  const { addItem, tableId, clearCart, updateBilling } = useOrderStore((state) => ({
+    addItem: state.addItem,
+    tableId: state.tableId,
+    clearCart: state.clearCart,
+    updateBilling: state.updateBilling
+  }));
   const router = useRouter();
+
+  // 🔄 Professional Real-time Synchronization
+  useRealtimeOrders(tableId);
+
+  // 📊 Analytics: Track Page View
+  useEffect(() => {
+    trackEvent({
+      event_type: 'page_view',
+      metadata: { page: 'home', table_id: tableId }
+    });
+  }, [tableId]);
 
   // Hoisted Handlers
   const handleTabChange = useCallback((tab: TabType) => {
@@ -92,56 +109,6 @@ export default function Home() {
       }
     }
   }, [allDishes, addItem, handleItemClick]);
-
-  // Real-time Sync with Supabase (Professional Architecture)
-  useEffect(() => {
-    console.log('🔄 Iniciando Sincronización Real-time con Supabase...');
-
-    const channel = supabaseTest
-      .channel('vapi-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'pedido_items',
-        },
-        async (payload) => {
-          console.log('📦 Nuevo ítem detectado vía Real-time:', payload);
-          const newItem = payload.new;
-
-          // Buscar el plato en el menú local para obtener los metadatos completos
-          const dish = allDishes.find(d => d.id === newItem.menu_id);
-
-          if (dish) {
-            addItem({
-              ...dish,
-              quantity: newItem.cantidad,
-              modifiers: newItem.modifications ? (Array.isArray(newItem.modifications) ? newItem.modifications.map(m => String(m)) : []) : []
-            }, newItem.comensal || 'Voz (Server)');
-
-            // Mostrar confirmación visual - Manejo robusto de nombres
-            const dishName = typeof dish.name === 'string' ? dish.name : (dish.name as any).es || 'Plato';
-
-            setModificationToShow({
-              dishName: dishName,
-              modifications: (newItem.modifications || []).map((m: any) => ({
-                type: String(m).startsWith('Sin') ? 'remove' : 'add',
-                ingredient: String(m).replace(/^(Sin |Con |Con extra de )/, '')
-              }))
-            });
-            setIsCartOpen(true);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Estado de Suscripción Real-time:', status);
-      });
-
-    return () => {
-      supabaseTest.removeChannel(channel);
-    };
-  }, [allDishes, addItem]);
 
   // Integration Hooks
   const {

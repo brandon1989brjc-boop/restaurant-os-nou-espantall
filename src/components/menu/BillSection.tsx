@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useOrderStore } from '@/stores/useOrderStore';
+import { AnalyticsEventType, trackEvent } from '@/lib/analytics';
 
 export default function BillSection() {
     const { orders, tableId, fetchOrders, billing, updateBilling } = useOrderStore();
@@ -17,9 +18,21 @@ export default function BillSection() {
 
     const handlePayment = async (method: 'card' | 'cash') => {
         setIsPaymentProcessing(true);
+        trackEvent({
+            event_type: AnalyticsEventType.PAYMENT_INITIATED,
+            metadata: { method, amount: totalAmount, table_id: tableId }
+        });
+
         // Simulate payment
         await new Promise(resolve => setTimeout(resolve, 2000));
+
         updateBilling({ isPaid: true, paymentType: method });
+
+        trackEvent({
+            event_type: AnalyticsEventType.PAYMENT_SUCCESS,
+            metadata: { method, amount: totalAmount, table_id: tableId }
+        });
+
         setIsPaymentProcessing(false);
     };
 

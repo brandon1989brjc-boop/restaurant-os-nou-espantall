@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Vapi from '@vapi-ai/web';
+import {
+    trackVoiceSessionStart,
+    trackVoiceSessionEnd,
+    trackItemAdded,
+    trackNavigation,
+    AnalyticsEventType,
+    trackEvent
+} from '@/lib/analytics';
 
 interface UseVapiProps {
     onNavigate: (section: string) => void;
@@ -9,12 +17,20 @@ interface UseVapiProps {
     onCartClear?: () => void;
 }
 
+/**
+ * Hook principal para integración con VAPI
+ * 
+ * Arquitectura Híbrida:
+ * - Client Tools: navegación, UI (latencia baja)
+ * - Server Tools: pedidos, transacciones (persistencia)
+ */
 export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) {
     const [vapi, setVapi] = useState<Vapi | null>(null);
     const [isCalling, setIsCalling] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [volume, setVolume] = useState(0);
+    const sessionStartTimeRef = useRef<number>(0);
 
     // Inicializar Vapi una sola vez
     useEffect(() => {
@@ -31,13 +47,23 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
 
         vapi.on('call-start', () => {
             setIsCalling(true);
-            console.log('Vapi Call Started');
+            sessionStartTimeRef.current = Date.now();
+            trackVoiceSessionStart({
+                timestamp: new Date().toISOString(),
+                table_id: (window as any).useOrderStore?.getState?.().tableId
+            });
+            console.log('🚀 Vapi Call Started');
         });
 
         vapi.on('call-end', () => {
             setIsCalling(false);
             setIsSpeaking(false);
-            console.log('Vapi Call Ended');
+            const duration = Date.now() - sessionStartTimeRef.current;
+            trackVoiceSessionEnd({
+                duration_ms: duration,
+                final_transcript: transcript
+            });
+            console.log('🏁 Vapi Call Ended');
         });
 
         vapi.on('speech-start', () => {
@@ -72,7 +98,7 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
                         // 1. Validar cantidad (entre 1 y 20)
                         let quantity = parseInt(args.quantity) || 1;
                         if (quantity < 1) quantity = 1;
-                        if (quantity > 20) quantity = 1; // Si es absurdo, por defecto 1
+                        if (quantity > 20) quantity = 1;
 
                         // 2. Buscar el ítem real en el menú expuesto globalmente (Búsqueda Flexible)
                         const allDishes = (window as any).allDishes || [];
@@ -86,7 +112,11 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
                         );
 
                         if (!matchedDish) {
-                            result = { ok: false, mensaje: `Lo siento, no he podido encontrar el plato "${args.item_id}" en la carta.` };
+                            result = { ok: false, mensaje: `No he encontrado "${args.item_id}" en la carta.` };
+                            trackEvent({
+                                event_type: AnalyticsEventType.VOICE_COMMAND_ERROR,
+                                metadata: { tool: 'agregar_item', error: 'Dish not found', search: args.item_id }
+                            });
                         } else {
                             onItemFound({
                                 ...matchedDish,
@@ -95,6 +125,12 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
                                 modifications: args.modifications?.map((m: any) =>
                                     `${m.type === 'remove' ? 'Sin' : 'Con'} ${m.content}`
                                 )
+                            });
+
+                            trackItemAdded(matchedDish.id, matchedDish.name.es || matchedDish.name, {
+                                quantity,
+                                diner: args.comensal,
+                                source: 'voice'
                             });
 
                             result = {
@@ -120,6 +156,7 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
                         };
                         const target = sectionMap[args.section.toLowerCase()] || args.section.toLowerCase();
                         onNavigate(target);
+                        trackNavigation(target, { source: 'voice' });
 
                         // Encontrar platos de esa sección para que el asistente pueda describirlos
                         const sectionDishes = allDishes.filter((d: any) =>
@@ -130,12 +167,13 @@ export function useVapi({ onNavigate, onItemFound, onCartClear }: UseVapiProps) 
 
                         result = {
                             ok: true,
-                            mensaje: `¡Aquí tienes! Ya estamos en la sección de ${args.section}.`,
+                            mensaje: `Cambiando a la sección de ${args.section}.`,
                             productos_disponibles: platosNombres || "Varios platos disponibles"
                         };
                     }
                     else if (name === 'limpiar_carrito' && onCartClear) {
                         onCartClear();
+                        trackEvent({ event_type: AnalyticsEventType.CART_CLEARED, metadata: { source: 'voice' } });
                         result = { ok: true, mensaje: "He vaciado el carrito por completo." };
                     }
                     else if (name === 'obtener_total') {
